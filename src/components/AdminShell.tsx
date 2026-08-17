@@ -1,0 +1,75 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
+interface AdminShellProps {
+  email: string;
+  children: React.ReactNode;
+}
+
+const NAV_ITEMS = [
+  { href: "/admin", label: "대시보드" },
+  { href: "/admin/records", label: "회원관리" },
+  { href: "/admin/members", label: "회원승인" },
+  { href: "/admin/levels", label: "등급관리" },
+  { href: "/admin/rules", label: "기준설정" },
+  { href: "/admin/config", label: "전역설정" },
+  { href: "/admin/audit", label: "감사로그" },
+];
+
+export default function AdminShell({ email, children }: AdminShellProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/admin/login");
+    router.refresh();
+  }
+
+  return (
+    <div className="flex min-h-full flex-1 bg-paper">
+      <aside className="hidden w-56 shrink-0 flex-col gap-1 border-r border-line bg-card p-4 md:flex">
+        <p className="font-title mb-4 px-2 text-sm font-bold text-teal-deep">스토리룸 관리자</p>
+        {NAV_ITEMS.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`rounded-[10px] px-3 py-2 text-sm font-medium ${
+              pathname === item.href ? "bg-teal-soft text-teal-deep" : "text-ink hover:bg-teal-soft/50"
+            }`}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </aside>
+
+      <div className="flex flex-1 flex-col">
+        <header className="flex items-center justify-between border-b border-line bg-card px-4 py-3 md:px-8">
+          <nav className="flex gap-1 overflow-x-auto md:hidden">
+            {NAV_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`shrink-0 rounded-[10px] px-3 py-1.5 text-xs font-medium ${
+                  pathname === item.href ? "bg-teal-soft text-teal-deep" : "text-ink"
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          <span className="hidden text-xs text-muted md:inline">{email}</span>
+          <button type="button" onClick={handleLogout} className="text-xs font-medium text-muted hover:text-ink">
+            로그아웃
+          </button>
+        </header>
+
+        <main className="flex-1 p-4 md:p-8">{children}</main>
+      </div>
+    </div>
+  );
+}

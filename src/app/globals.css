@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+/* 시방서 §5.1 색상 토큰 */
+:root {
+  --ink: #0c1d1b;
+  --paper: #eff3f2;
+  --card: #ffffff;
+  --teal: #0d9488;
+  --teal-deep: #0a6b62;
+  --teal-soft: #e4f1ef;
+  --gold: #a97615;
+  --gold-soft: #fbf3e1;
+  --line: #dbe3e1;
+  --muted: #677876;
+  --danger: #ae4038;
+
+  /* §5.1 등급 그라디언트 */
+  --level-l0-from: #c3cfcd;
+  --level-l0-to: #8b9b98;
+  --level-l1-from: #6bd3c4;
+  --level-l1-to: #2a9187;
+  --level-l2-from: #1cc0ae;
+  --level-l2-to: #0a6b62;
+  --level-l3-from: #f0d588;
+  --level-l3-to: #a97615;
+
+  /* §5.4 그림자 */
+  --shadow-s1: 0 1px 2px rgba(12, 29, 27, 0.08);
+  --shadow-s2: 0 4px 14px rgba(12, 29, 27, 0.12);
+  --shadow-s3: 0 14px 38px rgba(12, 29, 27, 0.16);
+
+  --radius-button: 10px;
+  --radius-card: 14px;
+  --radius-banner: 12px;
+  --radius-chip: 999px;
+
+  --font-body: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-teal: var(--teal);
+  --color-teal-deep: var(--teal-deep);
+  --color-teal-soft: var(--teal-soft);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-line: var(--line);
+  --color-muted: var(--muted);
+  --color-danger: var(--danger);
+
+  --font-sans: var(--font-body);
+  --font-title: var(--font-noto-serif-kr);
+  --font-mono: var(--font-ibm-plex-mono);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: clamp(0.875rem, 2vw, 1rem);
+}
+
+h1,
+h2,
+h3,
+.font-title {
+  font-family: var(--font-noto-serif-kr), serif;
+  letter-spacing: -0.03em;
+}
+
+.font-mono,
+.tabular-nums {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* §5.4 컴포넌트 규격 */
+.btn {
+  height: 46px;
+  border-radius: var(--radius-button);
+  transition: transform 0.15s ease;
+}
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.input-field {
+  height: 46px;
+  border-radius: var(--radius-button);
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+.input-field:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px var(--teal-soft);
+}
+
+.card {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-s1);
+  background: var(--card);
+}
+
+.banner {
+  border-radius: var(--radius-banner);
+}
+
+.chip {
+  border-radius: var(--radius-chip);
+  height: 38px;
+}
+
+/* §5.5 접근성 */
+:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
