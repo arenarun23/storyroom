@@ -36,7 +36,7 @@ export default function AppShell({ displayName, avatarUrl, isAdmin = false, chil
   return (
     <div className="flex min-h-full flex-1 flex-col pb-16 md:pb-0">
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-paper/95 px-6 py-4 backdrop-blur sm:px-10">
-        <Link href="/me" className="font-title text-lg font-bold text-teal-deep">
+        <Link href="/" className="font-title text-lg font-bold text-teal-deep">
           STORYROOM EDU CERTIFICATION
         </Link>
 
@@ -56,14 +56,16 @@ export default function AppShell({ displayName, avatarUrl, isAdmin = false, chil
 
         <div className="flex items-center gap-3">
           <NotificationBell />
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatarUrl} alt="" className="h-8 w-8 rounded-full" />
-          ) : (
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-soft text-xs font-bold text-teal-deep">
-              {displayName?.[0] ?? "T"}
-            </div>
-          )}
+          <Link href="/me" title="내 정보" aria-label="내 정보">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="" className="h-8 w-8 rounded-full" />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-soft text-xs font-bold text-teal-deep">
+                {displayName?.[0] ?? "T"}
+              </div>
+            )}
+          </Link>
           <button
             type="button"
             onClick={handleLogout}

@@ -55,8 +55,10 @@ export async function proxy(request: NextRequest) {
     needsOnboarding = !profile?.real_name || !profile?.region || !profile?.phone;
   }
 
-  // FR-109: 로그인 상태로 / 또는 /login 접근 시 이동 (온보딩 미완료면 그쪽으로)
-  if (isAuthed && (pathname === "/" || pathname === "/login")) {
+  // FR-109: 로그인 상태로 /login 접근 시 이동 (온보딩 미완료면 그쪽으로).
+  // 랜딩 페이지(/)는 로그인 여부와 무관하게 그대로 보여준다(상단 좌측 로고를
+  // 눌러 항상 랜딩 페이지로 돌아올 수 있어야 하므로 자동 리다이렉트하지 않는다).
+  if (isAuthed && pathname === "/login") {
     return NextResponse.redirect(new URL(needsOnboarding ? "/onboarding" : "/me", request.url));
   }
 
