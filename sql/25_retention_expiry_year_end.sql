@@ -1,16 +1,13 @@
--- 유지 만료일(level_expires_at)을 등급유지일(now())로부터 몇 개월 뒤인지로
--- 계산하되, 월/일은 등급유지일과 상관없이 무조건 그 해 12월 31일로 고정한다.
--- 기존에는 "등급유지일 + retention_months"의 정확한 날짜(예: 2027-02-18)를
--- 그대로 썼는데, 이제는 그 계산이 가리키는 연도의 12월 31일(예: 2027-12-31)로
--- 통일한다.
+-- 유지 만료일(level_expires_at)을 유지 개월수(retention_months)와 무관하게,
+-- 등급 갱신이 일어나는 시점(now())의 "해당 연도" 12월 31일로 고정한다.
+-- 예: 2026년 8월에 갱신되면 2026-12-31, 2027년 1월에 갱신되면 2027-12-31.
 
-create or replace function retention_expiry_date(p_months integer) returns timestamptz
+drop function if exists retention_expiry_date(integer) cascade;
+
+create or replace function retention_expiry_date() returns timestamptz
 language plpgsql stable as $$
-declare
-  target_year integer;
 begin
-  target_year := extract(year from (now() + (p_months || ' months')::interval));
-  return (make_date(target_year, 12, 31) + time '23:59:59') at time zone 'Asia/Seoul';
+  return (make_date(extract(year from now())::int, 12, 31) + time '23:59:59') at time zone 'Asia/Seoul';
 end;
 $$;
 
@@ -24,7 +21,6 @@ declare
   to_order integer;
   to_has_retention boolean;
   to_name text;
-  retention_months integer;
   cooldown_months integer;
   new_expires timestamptz;
   new_lock timestamptz;
@@ -39,10 +35,9 @@ begin
   select order_no, has_retention, name into to_order, to_has_retention, to_name
   from levels where code = p_to_level;
 
-  retention_months := coalesce(cfg_int('retention_months'), 6);
   cooldown_months := coalesce(cfg_int('promotion_cooldown_months'), 1);
 
-  new_expires := case when to_has_retention then retention_expiry_date(retention_months) else null end;
+  new_expires := case when to_has_retention then retention_expiry_date() else null end;
   new_lock := case when to_order < cur_order then now() + (cooldown_months || ' months')::interval else null end;
 
   perform set_config('app.internal_write', 'on', true);
@@ -76,7 +71,6 @@ declare
   next_level text;
   cur_order integer;
   next_order integer;
-  retention_months integer;
   cur_has_retention boolean;
 begin
   select * into prof from profiles where id = p_user;
@@ -101,9 +95,8 @@ begin
   elsif next_order = cur_order then
     select has_retention into cur_has_retention from levels where code = prof.current_level;
     if cur_has_retention then
-      retention_months := coalesce(cfg_int('retention_months'), 6);
       perform set_config('app.internal_write', 'on', true);
-      update profiles set level_expires_at = retention_expiry_date(retention_months)
+      update profiles set level_expires_at = retention_expiry_date()
       where id = p_user;
     end if;
   end if;
@@ -117,7 +110,6 @@ declare
   next_level text;
   cur_order integer;
   next_order integer;
-  retention_months integer;
   cur_has_retention boolean;
 begin
   select * into prof from profiles where id = p_user;
@@ -147,9 +139,8 @@ begin
   elsif next_order = cur_order then
     select has_retention into cur_has_retention from levels where code = prof.current_level;
     if cur_has_retention then
-      retention_months := coalesce(cfg_int('retention_months'), 6);
       perform set_config('app.internal_write', 'on', true);
-      update profiles set level_expires_at = retention_expiry_date(retention_months)
+      update profiles set level_expires_at = retention_expiry_date()
       where id = p_user;
     end if;
   end if;
@@ -177,7 +168,7 @@ begin
   loop
     if check_rules(prof.id, prof.current_level, 'retention', since) then
       perform set_config('app.internal_write', 'on', true);
-      update profiles set level_expires_at = retention_expiry_date(retention_months)
+      update profiles set level_expires_at = retention_expiry_date()
       where id = prof.id;
     else
       select code into lower_level from levels
@@ -188,9 +179,8 @@ begin
 end;
 $$;
 
--- 이미 저장된 유지 만료일도 같은 규칙으로 맞춘다: 연도는 그대로 두고
--- 월/일만 12월 31일로 고정한다.
+-- 이미 저장된 유지 만료일도 지금 시점(올해) 12월 31일로 맞춘다.
 update profiles
 set level_expires_at =
-  (make_date(extract(year from level_expires_at)::int, 12, 31) + time '23:59:59') at time zone 'Asia/Seoul'
+  (make_date(extract(year from now())::int, 12, 31) + time '23:59:59') at time zone 'Asia/Seoul'
 where level_expires_at is not null;
