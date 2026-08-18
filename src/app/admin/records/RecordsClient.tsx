@@ -5,7 +5,14 @@ import { useRouter } from "next/navigation";
 import { adminReevaluateAll, adminUpdateMemberInfo } from "@/app/admin/records/actions";
 import MemberDetailDrawer from "@/app/admin/records/MemberDetailDrawer";
 import CreateMemberDialog from "@/app/admin/records/CreateMemberDialog";
-import { formatDateKST, formatDateTimeKST, formatDuration, isPast, isWithinWarningWindow } from "@/lib/format";
+import {
+  formatDateKST,
+  formatDateTimeKST,
+  formatDuration,
+  isPast,
+  isWithinWarningWindow,
+  levelRoman,
+} from "@/lib/format";
 import { SUPER_ADMIN_EMAIL } from "@/lib/roles";
 import type { AdminMemberRow, Level, Role } from "@/lib/types";
 
@@ -66,6 +73,7 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
 
   const levelOrder = useMemo(() => new Map(levels.map((l) => [l.code, l.order_no])), [levels]);
   const levelName = useMemo(() => new Map(levels.map((l) => [l.code, l.name])), [levels]);
+  const levelColor = useMemo(() => new Map(levels.map((l) => [l.code, l.badge_color])), [levels]);
   const countByLevel = useMemo(() => {
     const map = new Map<string, number>();
     for (const m of members) map.set(m.current_level, (map.get(m.current_level) ?? 0) + 1);
@@ -260,7 +268,13 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
                   {m.display_name ?? "이름 없음"}
                   {m.manual_override && <span className="ml-1 text-gold">●</span>}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2">{levelName.get(m.current_level) ?? m.current_level}</td>
+                <td className="whitespace-nowrap px-3 py-2">
+                  <LevelPill
+                    name={levelName.get(m.current_level) ?? m.current_level}
+                    orderNo={levelOrder.get(m.current_level) ?? 0}
+                    color={levelColor.get(m.current_level)}
+                  />
+                </td>
                 <td className="whitespace-nowrap px-3 py-2 font-mono">
                   {formatDateTimeKST(m.level_updated_at)}
                 </td>
@@ -300,6 +314,36 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
 
       {showCreateDialog && <CreateMemberDialog onClose={() => setShowCreateDialog(false)} />}
     </div>
+  );
+}
+
+// 등급 이름을 배지로 표시한다. 등급 뱃지(육각형)와 동일한
+// badge_color("fromHex,toHex") 그라디언트를 그대로 채워 넣고, 위쪽에
+// 옅은 흰색 하이라이트를 더해 육각형과 같은 유광 느낌을 준다. 옅은 색
+// 톤끼리(예: Starter/Creator)도 뚜렷이 구분되도록 배경을 진하게 칠하고
+// 글자는 흰색으로 뺀다. 이름 앞에는 육각형 중앙과 동일한 로마자(0/I/II/III)를
+// 붙이고, 기본 chip 크기보다 10% 작게 표시한다.
+function LevelPill({
+  name,
+  orderNo,
+  color,
+}: {
+  name: string;
+  orderNo: number;
+  color: string | null | undefined;
+}) {
+  const [from, to] = (color ?? "#C3CFCD,#8B9B98").split(",");
+  return (
+    <span
+      className="chip inline-flex origin-left items-center gap-1.5 px-3 text-xs font-semibold text-white shadow-[var(--shadow-s1)]"
+      style={{
+        backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0) 55%), linear-gradient(135deg, ${from}, ${to})`,
+        border: `1px solid ${to}`,
+        transform: "scale(0.9)",
+      }}
+    >
+      {levelRoman(orderNo)} {name}
+    </span>
   );
 }
 

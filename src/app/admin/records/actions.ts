@@ -5,7 +5,10 @@ import { requireAdmin } from "@/lib/supabase/adminAuth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SUPER_ADMIN_EMAIL } from "@/lib/roles";
+import { extractYouTubeId, normalizeUrl } from "@/lib/format";
 import type { ActionResult, Comment, Level, LevelRule, Role, Video } from "@/lib/types";
+
+const URL_PATTERN = /^https?:\/\//i;
 
 interface UserMetricsLike {
   video_count: number;
@@ -451,6 +454,66 @@ export async function adminSetVideoStatus(
   });
 
   revalidatePath("/admin/records");
+  return { ok: true };
+}
+
+// 관리자가 회원이 등록한 영상의 제목/링크/재생시간을 직접 수정한다.
+// service role로 처리하므로 소유자 제한 없이 어떤 상태의 영상이든 고칠 수 있다.
+export async function adminUpdateVideoInfo(
+  videoId: string,
+  patch: { title?: string | null; url?: string; durationSec?: number },
+): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const client = createAdminClient();
+
+  const { data: before } = await client
+    .from("videos")
+    .select("title, url, duration_sec")
+    .eq("id", videoId)
+    .single();
+
+  const update: Record<string, unknown> = {};
+
+  if (patch.title !== undefined) {
+    update.title = patch.title?.trim() || null;
+  }
+
+  if (patch.url !== undefined) {
+    const url = patch.url.trim();
+    if (!URL_PATTERN.test(url)) {
+      return { ok: false, message: "http(s):// 로 시작하는 링크를 넣어주세요" };
+    }
+    update.url = url;
+    update.url_key = normalizeUrl(url);
+    update.platform = extractYouTubeId(url) ? "youtube" : "storyroom";
+    update.yt_video_id = extractYouTubeId(url);
+  }
+
+  if (patch.durationSec !== undefined) {
+    if (!patch.durationSec || patch.durationSec <= 0) {
+      return { ok: false, message: "재생시간을 확인해 주세요" };
+    }
+    update.duration_sec = patch.durationSec;
+    update.duration_source = "manual";
+  }
+
+  const { error } = await client.from("videos").update(update).eq("id", videoId);
+  if (error) {
+    if (error.code === "23505") return { ok: false, message: "이미 등록된 영상입니다" };
+    return { ok: false, message: error.message || "처리에 실패했습니다." };
+  }
+
+  await client.from("audit_log").insert({
+    admin_id: admin.id,
+    action: "update_video_info",
+    target_table: "videos",
+    target_id: videoId,
+    before,
+    after: update,
+  });
+
+  revalidatePath("/admin/records");
+  revalidatePath("/admin/videos");
   return { ok: true };
 }
 
