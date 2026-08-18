@@ -23,7 +23,7 @@ import MemberSearchSelect from "@/components/MemberSearchSelect";
 import OutlierBadge from "@/components/OutlierBadge";
 import type { AdminMemberRow, Level, Role } from "@/lib/types";
 
-const TABS = ["기본 정보", "지표", "영상", "활동", "등급 이력", "AI 코멘트"] as const;
+const TABS = ["기본 정보", "지표", "영상", "활동", "등급 이력", "로그인 기록", "AI 코멘트"] as const;
 type Tab = (typeof TABS)[number];
 
 interface MemberDetailDrawerProps {
@@ -112,6 +112,7 @@ export default function MemberDetailDrawer({
               )}
               {tab === "활동" && <ActivityTab detail={detail} onChanged={() => router.refresh()} />}
               {tab === "등급 이력" && <HistoryTab detail={detail} levels={levels} />}
+              {tab === "로그인 기록" && <LoginHistoryTab detail={detail} />}
               {tab === "AI 코멘트" && (
                 <p className="text-center text-sm text-muted">아직 받은 AI 코멘트가 없습니다.</p>
               )}
@@ -719,6 +720,23 @@ function HistoryTab({ detail, levels }: { detail: MemberDetail; levels: Level[] 
           </div>
           {h.reason && <p className="text-xs text-muted">{h.reason}</p>}
           <p className="font-mono text-[11px] text-muted">{new Date(h.created_at).toLocaleString("ko-KR")}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function LoginHistoryTab({ detail }: { detail: MemberDetail }) {
+  if (detail.loginHistory.length === 0) return <p className="text-sm text-muted">로그인 기록이 없습니다.</p>;
+  return (
+    <ul className="flex flex-col gap-2">
+      {detail.loginHistory.map((h) => (
+        <li key={h.id} className="card flex flex-col gap-1 p-3 text-sm">
+          <p className="font-mono text-xs text-ink">{new Date(h.logged_in_at).toLocaleString("ko-KR")}</p>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted">
+            {h.ip_address && <span>IP {h.ip_address}</span>}
+            {h.user_agent && <span className="truncate">{h.user_agent}</span>}
+          </div>
         </li>
       ))}
     </ul>

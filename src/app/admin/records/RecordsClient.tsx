@@ -46,10 +46,11 @@ interface RecordsClientProps {
   members: AdminMemberRow[];
   levels: Level[];
   viewerRole: Role;
+  initialLevel?: string;
 }
 
-export default function RecordsClient({ members, levels, viewerRole }: RecordsClientProps) {
-  const [levelFilter, setLevelFilter] = useState("");
+export default function RecordsClient({ members, levels, viewerRole, initialLevel = "" }: RecordsClientProps) {
+  const [levelFilter, setLevelFilter] = useState(initialLevel);
   const [expiringOnly, setExpiringOnly] = useState(false);
   const [coolingOnly, setCoolingOnly] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");

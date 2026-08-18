@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { isAdminRole } from "@/lib/roles";
+import { recordAdminLogin } from "@/app/admin/login/actions";
 
 // SCR-10 관리자 로그인 (FR-103: 이메일+비밀번호, 구글 로그인과 별도 경로)
 export default function AdminLoginPage() {
@@ -36,6 +37,7 @@ export default function AdminLoginPage() {
       return;
     }
 
+    await recordAdminLogin();
     router.push("/admin");
     router.refresh();
   }
@@ -43,7 +45,7 @@ export default function AdminLoginPage() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-8 bg-ink px-6 py-16">
       <div className="flex flex-col items-center gap-1 text-center">
-        <h1 className="font-title text-xl font-bold text-white">스토리룸 교사 그룹</h1>
+        <h1 className="font-title text-xl font-bold text-white">STORYROOM EDU CERTIFICATION</h1>
         <p className="text-sm text-white/60">관리자 로그인</p>
       </div>
 

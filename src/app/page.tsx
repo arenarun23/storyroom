@@ -32,7 +32,7 @@ export default async function LandingPage() {
   return (
     <div className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col">
       <header className="flex items-center justify-between px-6 py-5 sm:px-10">
-        <span className="font-title text-lg font-bold text-teal-deep">스토리룸 교사 그룹</span>
+        <span className="font-title text-lg font-bold text-teal-deep">STORYROOM EDU CERTIFICATION</span>
         <Link
           href="/login"
           className="btn flex items-center rounded-[10px] bg-teal px-5 text-sm font-semibold text-white"
@@ -103,7 +103,7 @@ export default async function LandingPage() {
 
       <footer className="mt-auto flex flex-col items-center gap-2 border-t border-line px-6 py-8 text-xs text-muted sm:px-10">
         <p>이용약관 · 개인정보처리방침 (준비 중)</p>
-        <p>© 스토리룸 교사 그룹</p>
+        <p>© STORYROOM EDU CERTIFICATION</p>
       </footer>
     </div>
   );

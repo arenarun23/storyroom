@@ -62,7 +62,12 @@ function LevelRulesSection({
   // 순서 변경을 클릭 즉시 화면에 반영(낙관적 업데이트)하기 위한 로컬 상태.
   // 부모가 rules 데이터가 바뀔 때마다 이 컴포넌트를 새 key로 리마운트시켜주므로
   // (RulesClient 참고) 여기서는 초기값만 잡으면 되고 별도 동기화 effect가 필요 없다.
-  const [ordered, setOrdered] = useState(rules);
+  // 비활성 규칙은 활성 규칙들 다음, 레벨 내 최하위로 자동 정렬된다.
+  const [ordered, setOrdered] = useState(() =>
+    [...rules].sort((a, b) =>
+      a.is_active === b.is_active ? a.sort_order - b.sort_order : a.is_active ? -1 : 1,
+    ),
+  );
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const availableMetrics = ruleType === "promotion" ? PROMOTION_METRICS : RETENTION_METRICS;

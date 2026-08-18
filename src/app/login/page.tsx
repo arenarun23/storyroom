@@ -28,7 +28,7 @@ export default function LoginPage() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-16 text-center">
       <div className="flex flex-col gap-2">
-        <h1 className="font-title text-2xl font-bold text-ink">스토리룸 교사 그룹</h1>
+        <h1 className="font-title text-2xl font-bold text-ink">STORYROOM EDU CERTIFICATION</h1>
         <p className="text-sm text-muted">구글 계정으로 로그인하면 자동으로 가입됩니다.</p>
       </div>
 

@@ -34,7 +34,7 @@ export default function AdminShell({ email, children }: AdminShellProps) {
   return (
     <div className="flex min-h-full flex-1 bg-paper">
       <aside className="hidden w-56 shrink-0 flex-col gap-1 border-r border-line bg-card p-4 md:flex">
-        <p className="font-title mb-4 px-2 text-sm font-bold text-teal-deep">스토리룸 관리자</p>
+        <p className="font-title mb-4 px-2 text-sm font-bold text-teal-deep">STORYROOM EDU CERTIFICATION 관리자</p>
         {NAV_ITEMS.map((item) => (
           <Link
             key={item.href}

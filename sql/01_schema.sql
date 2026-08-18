@@ -29,6 +29,7 @@ create extension if not exists pgcrypto;
 -- =====================================================================
 
 drop table if exists audit_log cascade;
+drop table if exists login_history cascade;
 drop table if exists notifications cascade;
 drop table if exists level_history cascade;
 drop table if exists level_rules cascade;
@@ -251,6 +252,17 @@ create table audit_log (
 );
 
 create index idx_audit_log_created_at on audit_log(created_at desc);
+
+-- 회원별 로그인 기록. 구글 로그인(/auth/callback)·관리자 로그인 성공 시 기록된다.
+create table login_history (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid references profiles(id) on delete cascade,
+  logged_in_at timestamptz not null default now(),
+  ip_address  text,
+  user_agent  text
+);
+
+create index idx_login_history_user on login_history(user_id, logged_in_at desc);
 
 -- =====================================================================
 -- 2. 공통 함수 (§11.3)
@@ -1001,6 +1013,7 @@ alter table level_rules enable row level security;
 alter table level_history enable row level security;
 alter table notifications enable row level security;
 alter table audit_log enable row level security;
+alter table login_history enable row level security;
 
 -- app_config: 전체 조회, admin만 쓰기
 create policy app_config_select on app_config for select to authenticated using (true);
@@ -1071,6 +1084,10 @@ create policy notifications_mark_read on notifications for update to authenticat
 
 -- audit_log: admin만 조회, 쓰기는 시스템
 create policy audit_log_select on audit_log for select to authenticated
+  using (is_admin());
+
+-- login_history: admin만 조회, 쓰기는 시스템
+create policy login_history_select on login_history for select to authenticated
   using (is_admin());
 
 -- =====================================================================

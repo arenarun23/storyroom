@@ -17,7 +17,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "스토리룸 교사 그룹",
+  title: "STORYROOM EDU CERTIFICATION",
   description: "오늘 만든 한 편이 내일의 레벨이 됩니다",
 };
 

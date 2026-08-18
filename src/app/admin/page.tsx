@@ -34,10 +34,14 @@ export default async function AdminDashboardPage() {
 
         <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {(levels ?? []).map((level) => (
-            <div key={level.code} className="card flex flex-col gap-1 p-5">
+            <Link
+              key={level.code}
+              href={`/admin/records?level=${level.code}`}
+              className="card flex flex-col gap-1 p-5 transition-colors duration-150 hover:bg-teal-soft/50"
+            >
               <span className="font-mono text-3xl font-bold text-ink">{byLevel.get(level.code) ?? 0}</span>
-              <span className="text-xs text-teal-deep">{level.name}</span>
-            </div>
+              <span className="text-xs text-teal-deep">{level.name} → 회원 보기</span>
+            </Link>
           ))}
         </section>
 

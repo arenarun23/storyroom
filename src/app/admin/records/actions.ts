@@ -30,6 +30,13 @@ interface LevelHistoryRow {
   created_at: string;
 }
 
+interface LoginHistoryRow {
+  id: string;
+  logged_in_at: string;
+  ip_address: string | null;
+  user_agent: string | null;
+}
+
 export interface MemberDetail {
   metricsCumulative: UserMetricsLike | null;
   metricsRecent: UserMetricsLike | null;
@@ -39,6 +46,7 @@ export interface MemberDetail {
   commentsGiven: (Comment & { videos: { id: string; title: string | null } | null })[];
   commentsReceived: (Comment & { profiles: { display_name: string | null } | null })[];
   levelHistory: LevelHistoryRow[];
+  loginHistory: LoginHistoryRow[];
 }
 
 // §4.6 상세 패널: 지표/영상/활동/등급이력 탭에 필요한 데이터를 한 번에 모은다
@@ -74,6 +82,7 @@ export async function fetchMemberDetail(memberId: string): Promise<MemberDetail>
     { data: commentsGiven },
     ownedVideos,
     { data: levelHistory },
+    { data: loginHistory },
   ] = await Promise.all([
     supabase.rpc("admin_member_metrics", { p_user: memberId, p_since: null }).single<UserMetricsLike>(),
     supabase
@@ -99,6 +108,13 @@ export async function fetchMemberDetail(memberId: string): Promise<MemberDetail>
       .eq("user_id", memberId)
       .order("created_at", { ascending: false })
       .returns<LevelHistoryRow[]>(),
+    supabase
+      .from("login_history")
+      .select("id, logged_in_at, ip_address, user_agent")
+      .eq("user_id", memberId)
+      .order("logged_in_at", { ascending: false })
+      .limit(30)
+      .returns<LoginHistoryRow[]>(),
   ]);
 
   const ownedVideoIds = (ownedVideos.data ?? []).map((v) => v.id);
@@ -120,6 +136,7 @@ export async function fetchMemberDetail(memberId: string): Promise<MemberDetail>
     commentsGiven: (commentsGiven as MemberDetail["commentsGiven"] | null) ?? [],
     commentsReceived: (commentsReceived as MemberDetail["commentsReceived"] | null) ?? [],
     levelHistory: levelHistory ?? [],
+    loginHistory: loginHistory ?? [],
   };
 }
 

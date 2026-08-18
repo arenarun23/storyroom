@@ -37,15 +37,15 @@ export default function AppShell({ displayName, avatarUrl, isAdmin = false, chil
     <div className="flex min-h-full flex-1 flex-col pb-16 md:pb-0">
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-paper/95 px-6 py-4 backdrop-blur sm:px-10">
         <Link href="/me" className="font-title text-lg font-bold text-teal-deep">
-          스토리룸 교사 그룹
+          STORYROOM EDU CERTIFICATION
         </Link>
 
-        <nav className="hidden items-center gap-6 md:flex">
+        <nav className="hidden shrink-0 items-center gap-6 md:flex">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`text-sm font-medium ${
+              className={`shrink-0 text-sm font-medium whitespace-nowrap ${
                 pathname === item.href ? "text-teal-deep" : "text-ink"
               }`}
             >
