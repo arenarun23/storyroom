@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setApproval } from "@/app/admin/members/actions";
+import { formatDateKST } from "@/lib/format";
 import type { Profile } from "@/lib/types";
 
 interface MembersClientProps {
@@ -73,7 +74,7 @@ export default function MembersClient({ members }: MembersClientProps) {
             <div className="flex flex-1 flex-col">
               <span className="text-sm font-semibold text-ink">{m.display_name ?? "이름 없음"}</span>
               <span className="text-xs text-muted">
-                {m.email} · {m.auth_provider} · {new Date(m.created_at).toLocaleDateString("ko-KR")} 가입
+                {m.email} · {m.auth_provider} · {formatDateKST(m.created_at)} 가입
               </span>
             </div>
             <button

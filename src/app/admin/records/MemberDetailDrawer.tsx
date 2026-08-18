@@ -16,7 +16,7 @@ import {
   fetchMemberDetail,
   type MemberDetail,
 } from "@/app/admin/records/actions";
-import { formatDuration, isPast } from "@/lib/format";
+import { formatDateKST, formatDateTimeKST, formatDuration, isPast } from "@/lib/format";
 import { SUPER_ADMIN_EMAIL } from "@/lib/roles";
 import { REGIONS } from "@/lib/regions";
 import MemberSearchSelect from "@/components/MemberSearchSelect";
@@ -663,7 +663,7 @@ function ActivityTab({ detail, onChanged }: { detail: MemberDetail; onChanged: (
               <li key={c.id} className="card flex items-start justify-between gap-2 p-3 text-sm">
                 <div>
                   <p className="text-ink">{c.content}</p>
-                  <p className="text-xs text-muted">{new Date(c.created_at).toLocaleDateString("ko-KR")}</p>
+                  <p className="text-xs text-muted">{formatDateKST(c.created_at)}</p>
                 </div>
                 <button
                   type="button"
@@ -721,7 +721,7 @@ function HistoryTab({ detail, levels }: { detail: MemberDetail; levels: Level[] 
             <span className="chip border border-line px-2 text-[11px]">{h.change_type}</span>
           </div>
           {h.reason && <p className="text-xs text-muted">{h.reason}</p>}
-          <p className="font-mono text-[11px] text-muted">{new Date(h.created_at).toLocaleString("ko-KR")}</p>
+          <p className="font-mono text-[11px] text-muted">{formatDateTimeKST(h.created_at)}</p>
         </li>
       ))}
     </ul>
@@ -738,7 +738,7 @@ function LoginHistoryTab({ detail }: { detail: MemberDetail }) {
           <ul className="flex flex-col gap-2">
             {detail.loginHistory.map((h) => (
               <li key={h.id} className="card flex flex-col gap-1 p-3 text-sm">
-                <p className="font-mono text-xs text-ink">{new Date(h.logged_in_at).toLocaleString("ko-KR")}</p>
+                <p className="font-mono text-xs text-ink">{formatDateTimeKST(h.logged_in_at)}</p>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted">
                   {h.ip_address && <span>IP {h.ip_address}</span>}
                   {h.user_agent && <span className="truncate">{h.user_agent}</span>}
@@ -759,7 +759,7 @@ function LoginHistoryTab({ detail }: { detail: MemberDetail }) {
           <ul className="flex flex-col gap-2">
             {detail.legacyLoginHistory.map((h, i) => (
               <li key={i} className="card flex flex-col gap-1 p-3 text-sm">
-                <p className="font-mono text-xs text-ink">{new Date(h.logged_in_at).toLocaleString("ko-KR")}</p>
+                <p className="font-mono text-xs text-ink">{formatDateTimeKST(h.logged_in_at)}</p>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted">
                   {h.action && <span>{h.action}</span>}
                   {h.ip_address && <span>IP {h.ip_address}</span>}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatDuration } from "@/lib/format";
+import { formatDateKST, formatDuration } from "@/lib/format";
 import type { FeedVideo, Level } from "@/lib/types";
 
 function youtubeThumbnail(id: string) {
@@ -66,7 +66,7 @@ export default function VideoCard({ video, levels }: VideoCardProps) {
         <div className="mt-1 flex items-center gap-3 font-mono text-xs text-muted">
           <span>♥ {video.like_count}</span>
           <span>💬 {video.comment_count}</span>
-          <span className="ml-auto">{new Date(video.created_at).toLocaleDateString("ko-KR")}</span>
+          <span className="ml-auto">{formatDateKST(video.created_at)}</span>
         </div>
       </div>
     </Link>

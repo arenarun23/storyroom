@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { adminReevaluateAll, adminUpdateMemberInfo } from "@/app/admin/records/actions";
 import MemberDetailDrawer from "@/app/admin/records/MemberDetailDrawer";
 import CreateMemberDialog from "@/app/admin/records/CreateMemberDialog";
-import { formatMinutes, isPast, isWithinWarningWindow } from "@/lib/format";
+import { formatDateKST, formatDateTimeKST, formatMinutes, isPast, isWithinWarningWindow } from "@/lib/format";
 import { SUPER_ADMIN_EMAIL } from "@/lib/roles";
 import type { AdminMemberRow, Level, Role } from "@/lib/types";
 
@@ -262,10 +262,10 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
                 </td>
                 <td className="whitespace-nowrap px-3 py-2">{levelName.get(m.current_level) ?? m.current_level}</td>
                 <td className="whitespace-nowrap px-3 py-2 font-mono">
-                  {new Date(m.level_updated_at).toLocaleString("ko-KR")}
+                  {formatDateTimeKST(m.level_updated_at)}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 font-mono">
-                  {m.level_expires_at ? new Date(m.level_expires_at).toLocaleDateString("ko-KR") : "—"}
+                  {m.level_expires_at ? formatDateKST(m.level_expires_at) : "—"}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 font-mono">{m.video_count}</td>
                 <td className="whitespace-nowrap px-3 py-2 font-mono">{formatMinutes(m.total_duration_min * 60)}</td>
@@ -275,7 +275,7 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
                 <td className="whitespace-nowrap px-3 py-2 font-mono">{m.given_comments}</td>
                 <td className="whitespace-nowrap px-3 py-2 font-mono">{m.yt_views}</td>
                 <td className="whitespace-nowrap px-3 py-2 font-mono">
-                  {new Date(m.last_active_at).toLocaleString("ko-KR")}
+                  {formatDateTimeKST(m.last_active_at)}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2" onClick={(e) => e.stopPropagation()}>
                   <RoleSelect member={m} viewerRole={viewerRole} />

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import AppShell from "@/components/AppShell";
 import LikeButton from "@/app/videos/[id]/LikeButton";
 import CommentSection from "@/app/videos/[id]/CommentSection";
-import { formatDuration } from "@/lib/format";
+import { formatDateKST, formatDuration } from "@/lib/format";
 import { isAdminRole } from "@/lib/roles";
 import type { Comment, Level } from "@/lib/types";
 
@@ -95,7 +95,7 @@ export default async function VideoDetailPage(props: PageProps<"/videos/[id]">) 
                     {ownerLevel.name}
                   </span>
                 )}
-                <span>{new Date(video.created_at).toLocaleDateString("ko-KR")}</span>
+                <span>{formatDateKST(video.created_at)}</span>
                 <span className="font-mono">{formatDuration(video.duration_sec)}</span>
               </div>
             </div>

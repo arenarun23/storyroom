@@ -64,12 +64,11 @@ export default function AdminShell({ email, children }: AdminShellProps) {
             ))}
           </nav>
           <div className="flex items-center gap-3">
-            <span className="hidden text-xs text-muted md:inline">{email}</span>
             <Link
               href="/me"
               title="일반 페이지로 이동"
               aria-label="일반 페이지로 이동"
-              className="flex h-7 w-7 items-center justify-center rounded-full text-muted transition-colors duration-150 hover:bg-teal-soft hover:text-teal-deep"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-line text-muted transition-colors duration-150 hover:bg-teal-soft hover:text-teal-deep"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -85,10 +84,15 @@ export default function AdminShell({ email, children }: AdminShellProps) {
                 <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" />
               </svg>
             </Link>
-            <button type="button" onClick={handleLogout} className="text-xs font-medium text-muted hover:text-ink">
-              로그아웃
-            </button>
+            <span className="hidden text-xs text-muted md:inline">{email}</span>
           </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="rounded-[10px] border border-line px-3 py-1.5 text-xs font-medium text-muted transition-colors duration-150 hover:bg-teal-soft hover:text-teal-deep active:scale-95"
+          >
+            로그아웃
+          </button>
         </header>
 
         <main className="flex-1 p-4 md:p-8">{children}</main>

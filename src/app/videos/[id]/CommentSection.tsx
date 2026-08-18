@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createComment } from "@/app/videos/[id]/actions";
+import { formatDateKST } from "@/lib/format";
 import type { Comment } from "@/lib/types";
 
 const MIN_LENGTH = 10;
@@ -73,7 +74,7 @@ export default function CommentSection({ videoId, initialComments }: CommentSect
                   {comment.actor_id ? (comment.profiles?.display_name ?? "이름 없음") : "탈퇴한 회원"}
                 </span>
                 <span className="text-xs text-muted">
-                  {new Date(comment.created_at).toLocaleDateString("ko-KR")}
+                  {formatDateKST(comment.created_at)}
                 </span>
               </div>
               <p className="text-sm text-ink">{comment.content}</p>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { formatDateKST } from "@/lib/format";
 import type { Notification } from "@/lib/types";
 
 const TYPE_ICON: Record<Notification["type"], string> = {
@@ -96,7 +97,7 @@ export default function NotificationBell() {
                     <p className="text-xs font-semibold text-ink">{n.title}</p>
                     {n.body && <p className="text-xs text-muted">{n.body}</p>}
                     <p className="font-mono text-[11px] text-muted">
-                      {new Date(n.created_at).toLocaleDateString("ko-KR")}
+                      {formatDateKST(n.created_at)}
                     </p>
                   </div>
                 </div>

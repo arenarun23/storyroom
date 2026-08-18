@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminReassignVideo, adminResetVideo, adminSetVideoStatus } from "@/app/admin/records/actions";
-import { formatDuration } from "@/lib/format";
+import { formatDateKST, formatDuration } from "@/lib/format";
 import MemberSearchSelect from "@/components/MemberSearchSelect";
 import OutlierBadge from "@/components/OutlierBadge";
 
@@ -166,9 +166,7 @@ export default function VideoReviewClient({
                           선택 계정 없음
                         </span>
                       ))}
-                    <span className="font-mono text-muted">
-                      {new Date(v.created_at).toLocaleDateString("ko-KR")}
-                    </span>
+                    <span className="font-mono text-muted">{formatDateKST(v.created_at)}</span>
                   </span>
                 </div>
 

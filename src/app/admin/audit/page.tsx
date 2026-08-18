@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AdminShell from "@/components/AdminShell";
+import { formatDateTimeKST } from "@/lib/format";
 
 // SCR-18 감사 로그 (읽기 전용)
 export default async function AdminAuditPage() {
@@ -38,7 +39,7 @@ export default async function AdminAuditPage() {
               {(logs ?? []).map((log) => (
                 <tr key={log.id} className="border-b border-line last:border-b-0 align-top">
                   <td className="whitespace-nowrap px-3 py-2 font-mono">
-                    {new Date(log.created_at).toLocaleString("ko-KR")}
+                    {formatDateTimeKST(log.created_at)}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2">
                     {(() => {

@@ -6,7 +6,14 @@ import LevelBadge from "@/components/LevelBadge";
 import VideoManager from "@/app/me/VideoManager";
 import MonthlyChart from "@/app/me/MonthlyChart";
 import ProfileInfoEditor from "@/app/me/ProfileInfoEditor";
-import { METRIC_LABELS, formatDday, formatMinutes, isPast, isWithinWarningWindow } from "@/lib/format";
+import {
+  METRIC_LABELS,
+  formatDateKST,
+  formatDday,
+  formatMinutes,
+  isPast,
+  isWithinWarningWindow,
+} from "@/lib/format";
 import { isAdminRole } from "@/lib/roles";
 import type { Level, Profile, Video } from "@/lib/types";
 
@@ -113,7 +120,7 @@ export default async function MePage() {
               <p className="font-title text-lg font-bold text-ink">{currentLevel.name}</p>
               {expiresAt && (
                 <p className="font-mono text-sm text-muted">
-                  유지 만료 {formatDday(profile.level_expires_at!)} ({expiresAt.toLocaleDateString("ko-KR")})
+                  유지 만료 {formatDday(profile.level_expires_at!)} ({formatDateKST(profile.level_expires_at!)})
                 </p>
               )}
             </div>
@@ -132,7 +139,7 @@ export default async function MePage() {
 
         {showExpiryWarning && !isCoolingDown && (
           <p className="banner bg-gold-soft px-4 py-3 text-sm text-gold">
-            등급 유지 기준 만료가 임박했습니다. {expiresAt!.toLocaleDateString("ko-KR")}까지 활동을 이어가 주세요.
+            등급 유지 기준 만료가 임박했습니다. {formatDateKST(profile.level_expires_at!)}까지 활동을 이어가 주세요.
           </p>
         )}
 

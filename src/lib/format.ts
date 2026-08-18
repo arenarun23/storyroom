@@ -92,3 +92,14 @@ export function formatDday(targetIso: string): string {
   if (days <= 0) return "D-Day";
   return `D-${days}`;
 }
+
+// 서버(UTC 등)와 브라우저의 시스템 시간대에 상관없이 항상 한국 시간(KST)으로
+// 표시한다. toLocaleString/toLocaleDateString을 timeZone 없이 쓰면 실행
+// 환경의 로컬 시간대를 따라가 버려 서버(Vercel 등)에서는 시간이 어긋난다.
+export function formatDateTimeKST(iso: string): string {
+  return new Date(iso).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+}
+
+export function formatDateKST(iso: string): string {
+  return new Date(iso).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" });
+}
