@@ -426,9 +426,9 @@ function MetricsTab({ detail }: { detail: MemberDetail }) {
   if (!c || !r) return <p className="text-sm text-muted">지표를 불러올 수 없습니다.</p>;
 
   // yt_views/likes/comments는 채널 스냅샷 값이라 기간 집계가 없다(§6.3) — recent에 null 표시
-  const rows: { label: string; cum: number; recent: number | null }[] = [
+  const rows: { label: string; cum: number; recent: number | null; isDuration?: boolean }[] = [
     { label: "스토리룸 영상 편수", cum: c.video_count, recent: r.video_count },
-    { label: "누적 재생시간(분)", cum: c.total_duration_min, recent: r.total_duration_min },
+    { label: "누적 재생시간", cum: c.total_duration_min, recent: r.total_duration_min, isDuration: true },
     { label: "유튜브 영상 편수", cum: c.yt_video_count, recent: r.yt_video_count },
     { label: "유튜브 누적 조회수", cum: c.yt_views, recent: null },
   ];
@@ -449,8 +449,12 @@ function MetricsTab({ detail }: { detail: MemberDetail }) {
           {rows.map((row) => (
             <tr key={row.label} className="border-b border-line last:border-b-0">
               <td className="py-2 text-ink">{row.label}</td>
-              <td className="py-2 text-right font-mono">{Math.round(row.cum)}</td>
-              <td className="py-2 text-right font-mono">{row.recent === null ? "—" : Math.round(row.recent)}</td>
+              <td className="py-2 text-right font-mono">
+                {row.isDuration ? formatDuration(row.cum * 60) : Math.round(row.cum)}
+              </td>
+              <td className="py-2 text-right font-mono">
+                {row.recent === null ? "—" : row.isDuration ? formatDuration(row.recent * 60) : Math.round(row.recent)}
+              </td>
             </tr>
           ))}
         </tbody>

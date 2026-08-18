@@ -10,7 +10,7 @@ import {
   METRIC_LABELS,
   formatDateKST,
   formatDday,
-  formatMinutes,
+  formatDuration,
   isPast,
   isWithinWarningWindow,
 } from "@/lib/format";
@@ -145,7 +145,7 @@ export default async function MePage() {
 
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <SummaryCard label="영상 수" value={String(m.video_count)} />
-          <SummaryCard label="누적 시간" value={formatMinutes(m.total_duration_min * 60)} />
+          <SummaryCard label="누적 시간" value={formatDuration(m.total_duration_min * 60)} />
           <SummaryCard label="받은 좋아요" value={String(m.received_likes)} muted />
           <SummaryCard label="받은 댓글" value={String(m.received_comments)} muted />
         </section>
@@ -172,7 +172,9 @@ export default async function MePage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-ink">{METRIC_LABELS[rule.metric_key] ?? rule.metric_key}</span>
                     <span className="font-mono text-muted">
-                      {Math.round(value)} / {rule.threshold}
+                      {rule.metric_key === "total_duration_min"
+                        ? `${formatDuration(value * 60)} / ${formatDuration(rule.threshold * 60)}`
+                        : `${Math.round(value)} / ${rule.threshold}`}
                     </span>
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-line">

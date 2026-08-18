@@ -56,11 +56,6 @@ export function formatDuration(totalSec: number): string {
   return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
-export function formatMinutes(totalSec: number): string {
-  const minutes = Math.round(totalSec / 60);
-  return `${minutes}분`;
-}
-
 // §6.3 판정 지표 한글 표기 (내 정보 진행률 게이지, 등급 안내 페이지에서 공용)
 export const METRIC_LABELS: Record<string, string> = {
   video_count: "스토리룸 영상 편수",

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { adminReevaluateAll, adminUpdateMemberInfo } from "@/app/admin/records/actions";
 import MemberDetailDrawer from "@/app/admin/records/MemberDetailDrawer";
 import CreateMemberDialog from "@/app/admin/records/CreateMemberDialog";
-import { formatDateKST, formatDateTimeKST, formatMinutes, isPast, isWithinWarningWindow } from "@/lib/format";
+import { formatDateKST, formatDateTimeKST, formatDuration, isPast, isWithinWarningWindow } from "@/lib/format";
 import { SUPER_ADMIN_EMAIL } from "@/lib/roles";
 import type { AdminMemberRow, Level, Role } from "@/lib/types";
 
@@ -268,7 +268,7 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
                   {m.level_expires_at ? formatDateKST(m.level_expires_at) : "—"}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 font-mono">{m.video_count}</td>
-                <td className="whitespace-nowrap px-3 py-2 font-mono">{formatMinutes(m.total_duration_min * 60)}</td>
+                <td className="whitespace-nowrap px-3 py-2 font-mono">{formatDuration(m.total_duration_min * 60)}</td>
                 <td className="whitespace-nowrap px-3 py-2 font-mono">{m.received_likes}</td>
                 <td className="whitespace-nowrap px-3 py-2 font-mono">{m.received_comments}</td>
                 <td className="whitespace-nowrap px-3 py-2 font-mono">{m.given_likes}</td>
