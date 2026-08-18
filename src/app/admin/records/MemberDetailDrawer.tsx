@@ -20,6 +20,7 @@ import { formatDuration, isPast } from "@/lib/format";
 import { SUPER_ADMIN_EMAIL } from "@/lib/roles";
 import { REGIONS } from "@/lib/regions";
 import MemberSearchSelect from "@/components/MemberSearchSelect";
+import OutlierBadge from "@/components/OutlierBadge";
 import type { AdminMemberRow, Level, Role } from "@/lib/types";
 
 const TABS = ["기본 정보", "지표", "영상", "활동", "등급 이력", "AI 코멘트"] as const;
@@ -557,7 +558,7 @@ function VideosTab({
                 {v.platform === "youtube" ? "YouTube" : "스토리룸"}
               </span>
               <span className="chip border border-line px-2 text-[11px]">{v.status}</span>
-              {v.is_flagged && <span className="chip bg-gold-soft px-2 text-[11px] text-gold">이상치</span>}
+              {v.is_flagged && <OutlierBadge />}
               <span className="font-mono text-xs text-muted">{formatDuration(v.duration_sec)}</span>
             </div>
             <p className="truncate text-xs text-muted">{v.url}</p>

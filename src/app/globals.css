@@ -110,6 +110,9 @@ h3,
 }
 
 .chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--radius-chip);
   height: 38px;
 }

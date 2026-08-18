@@ -100,6 +100,7 @@ export async function createVideos(rows: VideoInputRow[]): Promise<CreateVideosR
   const inserts = parsed.map((p, i) => ({
     owner_id: user.id,
     platform: p!.platform,
+    title: rows[i].title?.trim() || null,
     url: p!.url,
     url_key: p!.key,
     duration_sec: p!.durationSec,
@@ -122,7 +123,7 @@ export async function createVideos(rows: VideoInputRow[]): Promise<CreateVideosR
 
 export async function updateVideo(
   id: string,
-  input: { url?: string; durationSec?: number },
+  input: { url?: string; title?: string | null; durationSec?: number },
 ): Promise<ActionResult> {
   const supabase = await createClient();
 
@@ -132,6 +133,10 @@ export async function updateVideo(
   if (!user) return { ok: false, message: "로그인이 필요합니다." };
 
   const patch: Record<string, unknown> = {};
+
+  if (input.title !== undefined) {
+    patch.title = input.title?.trim() || null;
+  }
 
   if (input.url !== undefined) {
     const url = input.url.trim();

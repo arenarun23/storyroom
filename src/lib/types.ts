@@ -67,6 +67,7 @@ export interface Video {
 
 export interface VideoInputRow {
   url: string;
+  title: string | null;
   durationSec: number | null;
   durationSource: DurationSource;
 }

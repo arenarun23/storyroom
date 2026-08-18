@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createVideos, deleteVideo, updateVideo } from "@/app/me/actions";
 import { extractYouTubeId, formatDuration, parseDuration } from "@/lib/format";
 import type { DurationSource, Video } from "@/lib/types";
+import OutlierBadge from "@/components/OutlierBadge";
 
 const MAX_ROWS = 10;
 const DETECT_TIMEOUT_MS = 3000;
@@ -14,6 +15,7 @@ type RowStatus = "idle" | "detecting" | "auto" | "manual";
 interface InputRow {
   id: number;
   url: string;
+  title: string;
   durationSec: number | null;
   manualText: string;
   status: RowStatus;
@@ -23,7 +25,7 @@ interface InputRow {
 let rowSeq = 0;
 function emptyRow(): InputRow {
   rowSeq += 1;
-  return { id: rowSeq, url: "", durationSec: null, manualText: "", status: "idle" };
+  return { id: rowSeq, url: "", title: "", durationSec: null, manualText: "", status: "idle" };
 }
 
 interface VideoManagerProps {
@@ -119,6 +121,7 @@ export default function VideoManager({ videos, disabled }: VideoManagerProps) {
       const result = await createVideos(
         filled.map((r) => ({
           url: r.url,
+          title: r.title.trim() || null,
           durationSec: r.durationSec,
           durationSource: (r.status === "auto" ? "auto" : "manual") as DurationSource,
         })),
@@ -165,6 +168,15 @@ export default function VideoManager({ videos, disabled }: VideoManagerProps) {
                     onBlur={(e) => handleUrlBlur(row.id, e.target.value)}
                     className="input-field flex-1 px-4 text-sm"
                     aria-label={`영상 링크 ${i + 1}`}
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="제목 (선택)"
+                    value={row.title}
+                    onChange={(e) => updateRow(row.id, { title: e.target.value })}
+                    className="input-field px-4 text-sm sm:w-40"
+                    aria-label={`영상 제목 ${i + 1}`}
                   />
 
                   <div className="flex items-center gap-2 sm:w-48">
@@ -260,6 +272,8 @@ export default function VideoManager({ videos, disabled }: VideoManagerProps) {
 function VideoRow({ video }: { video: Video }) {
   const [editing, setEditing] = useState(false);
   const [url, setUrl] = useState(video.url ?? "");
+  const [title, setTitle] = useState(video.title ?? "");
+  const [titleDraft, setTitleDraft] = useState("");
   const [durationText, setDurationText] = useState(formatDuration(video.duration_sec));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -274,12 +288,25 @@ function VideoRow({ video }: { video: Video }) {
     }
 
     startTransition(async () => {
-      const result = await updateVideo(video.id, { url, durationSec });
+      const result = await updateVideo(video.id, { url, title: title.trim() || null, durationSec });
       if (!result.ok) {
         setError(result.message);
         return;
       }
       setEditing(false);
+      router.refresh();
+    });
+  }
+
+  function handleSaveTitle() {
+    if (!titleDraft.trim()) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await updateVideo(video.id, { title: titleDraft.trim() });
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
       router.refresh();
     });
   }
@@ -302,6 +329,12 @@ function VideoRow({ video }: { video: Video }) {
             className="input-field flex-1 px-3 text-sm"
           />
           <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="제목 (선택)"
+            className="input-field px-3 text-sm sm:w-40"
+          />
+          <input
             value={durationText}
             onChange={(e) => setDurationText(e.target.value)}
             className="input-field w-28 px-3 font-mono text-sm"
@@ -313,10 +346,29 @@ function VideoRow({ video }: { video: Video }) {
             <span className="chip bg-teal-soft px-3 text-xs font-semibold text-teal-deep">
               {video.platform === "youtube" ? "YouTube" : "스토리룸"}
             </span>
-            {video.is_flagged && (
-              <span className="chip bg-gold-soft px-3 text-xs font-semibold text-gold">이상치</span>
-            )}
+            {video.is_flagged && <OutlierBadge size="md" />}
             <span className="font-mono text-sm text-ink">{formatDuration(video.duration_sec)}</span>
+            {video.title ? (
+              <span className="text-sm font-medium text-ink">{video.title}</span>
+            ) : (
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  value={titleDraft}
+                  onChange={(e) => setTitleDraft(e.target.value)}
+                  placeholder="제목 입력"
+                  className="input-field h-7 w-32 px-2 text-xs"
+                />
+                <button
+                  type="button"
+                  disabled={!titleDraft.trim() || pending}
+                  onClick={handleSaveTitle}
+                  className="chip border border-line px-2 text-[11px] font-semibold text-teal-deep disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {pending ? "저장 중..." : "저장"}
+                </button>
+              </div>
+            )}
           </div>
           <a
             href={video.url ?? "#"}

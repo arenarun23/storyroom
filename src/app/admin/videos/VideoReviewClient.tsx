@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { adminReassignVideo, adminResetVideo, adminSetVideoStatus } from "@/app/admin/records/actions";
 import { formatDuration } from "@/lib/format";
 import MemberSearchSelect from "@/components/MemberSearchSelect";
+import OutlierBadge from "@/components/OutlierBadge";
 
 export interface AdminVideoRow {
   id: string;
@@ -152,7 +153,7 @@ export default function VideoReviewClient({
                   >
                     {STATUS_LABELS[v.status]}
                   </span>
-                  {v.is_flagged && <span className="chip bg-gold-soft px-2 text-[11px] text-gold">이상치</span>}
+                  {v.is_flagged && <OutlierBadge />}
                   <span className="font-mono text-muted">{formatDuration(v.duration_sec)}</span>
                   <span className="ml-auto flex items-center gap-2">
                     {v.status === "reset" &&
