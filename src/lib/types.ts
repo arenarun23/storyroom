@@ -127,6 +127,7 @@ export interface LevelRule {
   threshold: number;
   is_active: boolean;
   memo: string | null;
+  sort_order: number;
 }
 
 export interface AppConfigRow {

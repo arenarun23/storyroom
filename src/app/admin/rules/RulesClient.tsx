@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { adminCreateRule, adminDeleteRule, adminUpdateRule } from "@/app/admin/rules/actions";
+import { adminCreateRule, adminDeleteRule, adminReorderRules, adminUpdateRule } from "@/app/admin/rules/actions";
 import { METRIC_LABELS } from "@/lib/format";
 import type { Level, LevelRule } from "@/lib/types";
 
@@ -23,14 +23,22 @@ export default function RulesClient({ levels, rules }: RulesClientProps) {
     <div className="flex flex-col gap-8">
       <h1 className="font-title text-xl font-bold text-ink">기준 설정</h1>
 
-      {targetableLevels.map((level) => (
-        <LevelRulesSection
-          key={level.code}
-          level={level}
-          rules={rules.filter((r) => r.target_level === level.code)}
-          onChanged={() => router.refresh()}
-        />
-      ))}
+      {targetableLevels.map((level) => {
+        const levelRules = rules.filter((r) => r.target_level === level.code);
+        // 순서/활성상태/값이 바뀔 때마다 새 key로 리마운트시켜, ordered 로컬
+        // 상태를 최신 서버 데이터로 자연스럽게 다시 초기화한다(useEffect 동기화 불필요).
+        const fingerprint = levelRules
+          .map((r) => `${r.id}:${r.sort_order}:${r.is_active}:${r.threshold}:${r.operator}`)
+          .join("|");
+        return (
+          <LevelRulesSection
+            key={`${level.code}-${fingerprint}`}
+            level={level}
+            rules={levelRules}
+            onChanged={() => router.refresh()}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -48,8 +56,14 @@ function LevelRulesSection({
   const [metric, setMetric] = useState(PROMOTION_METRICS[0]);
   const [operator, setOperator] = useState(">=");
   const [threshold, setThreshold] = useState("");
-  const [pending, startTransition] = useTransition();
+  const [addPending, startAddTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  // 순서 변경을 클릭 즉시 화면에 반영(낙관적 업데이트)하기 위한 로컬 상태.
+  // 부모가 rules 데이터가 바뀔 때마다 이 컴포넌트를 새 key로 리마운트시켜주므로
+  // (RulesClient 참고) 여기서는 초기값만 잡으면 되고 별도 동기화 effect가 필요 없다.
+  const [ordered, setOrdered] = useState(rules);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const availableMetrics = ruleType === "promotion" ? PROMOTION_METRICS : RETENTION_METRICS;
 
@@ -60,7 +74,7 @@ function LevelRulesSection({
       setError("기준값을 입력해 주세요.");
       return;
     }
-    startTransition(async () => {
+    startAddTransition(async () => {
       const result = await adminCreateRule({
         target_level: level.code,
         rule_type: ruleType,
@@ -77,18 +91,30 @@ function LevelRulesSection({
     });
   }
 
-  function handleDelete(id: string) {
-    startTransition(async () => {
-      await adminDeleteRule(id);
+  function runRowAction(ruleId: string, action: () => Promise<unknown>) {
+    setBusyId(ruleId);
+    action().finally(() => {
+      setBusyId(null);
       onChanged();
     });
   }
 
+  function handleDelete(id: string) {
+    runRowAction(id, () => adminDeleteRule(id));
+  }
+
   function handleToggle(rule: LevelRule) {
-    startTransition(async () => {
-      await adminUpdateRule(rule.id, { is_active: !rule.is_active });
-      onChanged();
-    });
+    runRowAction(rule.id, () => adminUpdateRule(rule.id, { is_active: !rule.is_active }));
+  }
+
+  function handleMove(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    if (target < 0 || target >= ordered.length) return;
+
+    const next = [...ordered];
+    [next[index], next[target]] = [next[target], next[index]];
+    setOrdered(next);
+    runRowAction(next[target].id, () => adminReorderRules(next.map((r) => r.id)));
   }
 
   return (
@@ -96,40 +122,68 @@ function LevelRulesSection({
       <h2 className="font-title text-lg font-bold text-ink">{level.name}</h2>
 
       <div className="flex flex-col gap-2">
-        {rules.length === 0 ? (
+        {ordered.length === 0 ? (
           <p className="text-sm text-muted">등록된 기준이 없습니다.</p>
         ) : (
-          rules.map((rule) => (
-            <div key={rule.id} className="flex items-center justify-between gap-2 border-b border-line py-2 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="chip border border-line px-2 text-[11px]">
-                  {rule.rule_type === "promotion" ? "승급" : "유지"}
-                </span>
-                <span className="text-ink">
-                  {METRIC_LABELS[rule.metric_key] ?? rule.metric_key} {rule.operator} {rule.threshold}
-                </span>
-                {!rule.is_active && <span className="text-xs text-muted">(비활성)</span>}
+          ordered.map((rule, index) => {
+            const busy = busyId === rule.id;
+            return (
+              <div
+                key={rule.id}
+                className={`flex items-center justify-between gap-2 border-b border-line py-2 text-sm transition-opacity duration-150 ${
+                  busy ? "opacity-50" : "opacity-100"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col">
+                    <button
+                      type="button"
+                      disabled={busyId !== null || index === 0}
+                      onClick={() => handleMove(index, -1)}
+                      aria-label="위로 이동"
+                      className="flex h-4 w-5 items-center justify-center text-xs leading-none text-muted transition-colors duration-150 hover:text-teal-deep disabled:pointer-events-none disabled:opacity-30"
+                    >
+                      ▲
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busyId !== null || index === ordered.length - 1}
+                      onClick={() => handleMove(index, 1)}
+                      aria-label="아래로 이동"
+                      className="flex h-4 w-5 items-center justify-center text-xs leading-none text-muted transition-colors duration-150 hover:text-teal-deep disabled:pointer-events-none disabled:opacity-30"
+                    >
+                      ▼
+                    </button>
+                  </div>
+                  <span className="chip border border-line px-2 text-[11px]">
+                    {rule.rule_type === "promotion" ? "승급" : "유지"}
+                  </span>
+                  <span className="text-ink">
+                    {METRIC_LABELS[rule.metric_key] ?? rule.metric_key} {rule.operator} {rule.threshold}
+                  </span>
+                  {!rule.is_active && <span className="text-xs text-muted">(비활성)</span>}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={busyId !== null}
+                    onClick={() => handleToggle(rule)}
+                    className="chip border border-line px-3 text-[11px] font-semibold text-ink transition-colors duration-150 hover:bg-teal-soft hover:text-teal-deep active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    {busy ? "처리 중..." : rule.is_active ? "비활성화" : "활성화"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busyId !== null}
+                    onClick={() => handleDelete(rule.id)}
+                    className="chip border border-line px-3 text-[11px] font-semibold text-danger transition-colors duration-150 hover:bg-danger hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    {busy ? "처리 중..." : "삭제"}
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => handleToggle(rule)}
-                  className="chip border border-line px-3 text-[11px] font-semibold text-ink"
-                >
-                  {rule.is_active ? "비활성화" : "활성화"}
-                </button>
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => handleDelete(rule.id)}
-                  className="chip border border-line px-3 text-[11px] font-semibold text-danger"
-                >
-                  삭제
-                </button>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -173,11 +227,11 @@ function LevelRulesSection({
 
         <button
           type="button"
-          disabled={pending}
+          disabled={addPending}
           onClick={handleAdd}
-          className="chip bg-teal px-4 text-xs font-semibold text-white"
+          className="chip bg-teal px-4 text-xs font-semibold text-white transition-colors duration-150 hover:bg-teal-deep active:scale-95 disabled:pointer-events-none disabled:opacity-60"
         >
-          추가
+          {addPending ? "추가 중..." : "추가"}
         </button>
       </div>
 

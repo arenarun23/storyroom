@@ -15,7 +15,7 @@ export default async function AdminRulesPage() {
 
   const [{ data: levels }, { data: rules }] = await Promise.all([
     supabase.from("levels").select("*").order("order_no").returns<Level[]>(),
-    supabase.from("level_rules").select("*").returns<LevelRule[]>(),
+    supabase.from("level_rules").select("*").order("sort_order").returns<LevelRule[]>(),
   ]);
 
   return (

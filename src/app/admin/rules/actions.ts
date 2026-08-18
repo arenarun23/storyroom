@@ -19,7 +19,16 @@ export async function adminCreateRule(input: RuleInput): Promise<ActionResult> {
   const admin = await requireAdmin();
   const client = createAdminClient();
 
-  const { error } = await client.from("level_rules").insert(input);
+  const { data: existing } = await client
+    .from("level_rules")
+    .select("sort_order")
+    .eq("target_level", input.target_level)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextSortOrder = (existing?.sort_order ?? -1) + 1;
+
+  const { error } = await client.from("level_rules").insert({ ...input, sort_order: nextSortOrder });
   if (error) {
     if (error.code === "23514") {
       return { ok: false, message: "이 지표는 선택한 규칙 유형에 사용할 수 없습니다." };
@@ -72,6 +81,28 @@ export async function adminDeleteRule(id: string): Promise<ActionResult> {
     action: "delete_rule",
     target_table: "level_rules",
     target_id: id,
+  });
+
+  revalidatePath("/admin/rules");
+  return { ok: true };
+}
+
+// 표시 순서만 바꾼다 — 판정 로직(check_rules)은 규칙을 순서 없이 AND로
+// 평가하므로 등급 판정 결과에는 영향이 없다.
+export async function adminReorderRules(orderedIds: string[]): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const client = createAdminClient();
+
+  const results = await Promise.all(
+    orderedIds.map((id, index) => client.from("level_rules").update({ sort_order: index }).eq("id", id)),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed) return { ok: false, message: "순서 저장에 실패했습니다." };
+
+  await client.from("audit_log").insert({
+    admin_id: admin.id,
+    action: "reorder_rules",
+    target_table: "level_rules",
   });
 
   revalidatePath("/admin/rules");
