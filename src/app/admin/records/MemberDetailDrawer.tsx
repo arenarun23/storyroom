@@ -729,18 +729,46 @@ function HistoryTab({ detail, levels }: { detail: MemberDetail; levels: Level[] 
 }
 
 function LoginHistoryTab({ detail }: { detail: MemberDetail }) {
-  if (detail.loginHistory.length === 0) return <p className="text-sm text-muted">로그인 기록이 없습니다.</p>;
   return (
-    <ul className="flex flex-col gap-2">
-      {detail.loginHistory.map((h) => (
-        <li key={h.id} className="card flex flex-col gap-1 p-3 text-sm">
-          <p className="font-mono text-xs text-ink">{new Date(h.logged_in_at).toLocaleString("ko-KR")}</p>
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted">
-            {h.ip_address && <span>IP {h.ip_address}</span>}
-            {h.user_agent && <span className="truncate">{h.user_agent}</span>}
-          </div>
-        </li>
-      ))}
-    </ul>
+    <div className="flex flex-col gap-6">
+      <div>
+        {detail.loginHistory.length === 0 ? (
+          <p className="text-sm text-muted">로그인 기록이 없습니다.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {detail.loginHistory.map((h) => (
+              <li key={h.id} className="card flex flex-col gap-1 p-3 text-sm">
+                <p className="font-mono text-xs text-ink">{new Date(h.logged_in_at).toLocaleString("ko-KR")}</p>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted">
+                  {h.ip_address && <span>IP {h.ip_address}</span>}
+                  {h.user_agent && <span className="truncate">{h.user_agent}</span>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2 border-t border-line pt-4">
+        <p className="text-xs font-semibold text-muted">
+          이전 로그인 기록 (Supabase 내부 로그, 참고용 — 보존 여부가 보장되지 않습니다)
+        </p>
+        {detail.legacyLoginHistory.length === 0 ? (
+          <p className="text-sm text-muted">조회된 이전 기록이 없습니다.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {detail.legacyLoginHistory.map((h, i) => (
+              <li key={i} className="card flex flex-col gap-1 p-3 text-sm">
+                <p className="font-mono text-xs text-ink">{new Date(h.logged_in_at).toLocaleString("ko-KR")}</p>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted">
+                  {h.action && <span>{h.action}</span>}
+                  {h.ip_address && <span>IP {h.ip_address}</span>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
   );
 }

@@ -37,6 +37,12 @@ interface LoginHistoryRow {
   user_agent: string | null;
 }
 
+interface LegacyLoginRow {
+  logged_in_at: string;
+  action: string | null;
+  ip_address: string | null;
+}
+
 export interface MemberDetail {
   metricsCumulative: UserMetricsLike | null;
   metricsRecent: UserMetricsLike | null;
@@ -47,11 +53,12 @@ export interface MemberDetail {
   commentsReceived: (Comment & { profiles: { display_name: string | null } | null })[];
   levelHistory: LevelHistoryRow[];
   loginHistory: LoginHistoryRow[];
+  legacyLoginHistory: LegacyLoginRow[];
 }
 
 // §4.6 상세 패널: 지표/영상/활동/등급이력 탭에 필요한 데이터를 한 번에 모은다
 export async function fetchMemberDetail(memberId: string): Promise<MemberDetail> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const supabase = await createClient();
 
   const { data: currentLevelCode } = await supabase
@@ -83,6 +90,7 @@ export async function fetchMemberDetail(memberId: string): Promise<MemberDetail>
     ownedVideos,
     { data: levelHistory },
     { data: loginHistory },
+    legacyLoginResult,
   ] = await Promise.all([
     supabase.rpc("admin_member_metrics", { p_user: memberId, p_since: null }).single<UserMetricsLike>(),
     supabase
@@ -115,7 +123,11 @@ export async function fetchMemberDetail(memberId: string): Promise<MemberDetail>
       .order("logged_in_at", { ascending: false })
       .limit(30)
       .returns<LoginHistoryRow[]>(),
+    admin.role === "super_admin"
+      ? supabase.rpc("admin_legacy_login_history", { p_user: memberId })
+      : Promise.resolve({ data: [] as LegacyLoginRow[] }),
   ]);
+  const legacyLoginHistory = legacyLoginResult.data;
 
   const ownedVideoIds = (ownedVideos.data ?? []).map((v) => v.id);
   const { data: commentsReceived } = ownedVideoIds.length
@@ -137,6 +149,7 @@ export async function fetchMemberDetail(memberId: string): Promise<MemberDetail>
     commentsReceived: (commentsReceived as MemberDetail["commentsReceived"] | null) ?? [],
     levelHistory: levelHistory ?? [],
     loginHistory: loginHistory ?? [],
+    legacyLoginHistory: (legacyLoginHistory as LegacyLoginRow[] | null) ?? [],
   };
 }
 

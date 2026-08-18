@@ -57,6 +57,7 @@ drop function if exists run_cooldown_release() cascade;
 drop function if exists run_retention_check() cascade;
 drop function if exists apply_promotion(uuid) cascade;
 drop function if exists apply_reevaluation(uuid) cascade;
+drop function if exists admin_legacy_login_history(uuid) cascade;
 drop function if exists apply_level(uuid, text, text, text, uuid) cascade;
 drop function if exists evaluate_level(uuid) cascade;
 drop function if exists check_rules(uuid, text, text, timestamptz) cascade;
@@ -1089,6 +1090,32 @@ create policy audit_log_select on audit_log for select to authenticated
 -- login_history: 최고관리자만 조회, 쓰기는 시스템
 create policy login_history_select on login_history for select to authenticated
   using (exists (select 1 from profiles where id = auth.uid() and role = 'super_admin'));
+
+-- login_history는 오늘 이후 로그인만 기록한다. 그 이전 로그인은 Supabase
+-- Auth가 내부적으로 쌓는 auth.audit_log_entries에 남아있을 수도 있어(문서화
+-- 되지 않은 내부 테이블이라 보장은 없다) 최고관리자 전용으로 best-effort
+-- 조회를 시도한다. 스키마가 다르거나 접근 권한이 없으면 예외를 잡아
+-- 빈 결과로 대체한다.
+create function admin_legacy_login_history(p_user uuid)
+returns table(logged_in_at timestamptz, action text, ip_address text)
+language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from profiles where id = auth.uid() and role = 'super_admin') then
+    raise exception '권한이 없습니다';
+  end if;
+
+  return query
+  select a.created_at, a.payload->>'action', nullif(a.ip_address, '')
+  from auth.audit_log_entries a
+  where a.payload->>'actor_id' = p_user::text
+  order by a.created_at desc
+  limit 50;
+exception when others then
+  return;
+end;
+$$;
+
+grant execute on function admin_legacy_login_history(uuid) to authenticated;
 
 -- =====================================================================
 -- 5. 초기 데이터 (§6.4, §6.5, §5.1)
