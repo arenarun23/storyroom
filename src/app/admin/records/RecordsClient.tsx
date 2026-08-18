@@ -262,7 +262,7 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
                 </td>
                 <td className="whitespace-nowrap px-3 py-2">{levelName.get(m.current_level) ?? m.current_level}</td>
                 <td className="whitespace-nowrap px-3 py-2 font-mono">
-                  {new Date(m.level_updated_at).toLocaleDateString("ko-KR")}
+                  {new Date(m.level_updated_at).toLocaleString("ko-KR")}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 font-mono">
                   {m.level_expires_at ? new Date(m.level_expires_at).toLocaleDateString("ko-KR") : "—"}
@@ -275,7 +275,7 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
                 <td className="whitespace-nowrap px-3 py-2 font-mono">{m.given_comments}</td>
                 <td className="whitespace-nowrap px-3 py-2 font-mono">{m.yt_views}</td>
                 <td className="whitespace-nowrap px-3 py-2 font-mono">
-                  {new Date(m.last_active_at).toLocaleDateString("ko-KR")}
+                  {new Date(m.last_active_at).toLocaleString("ko-KR")}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2" onClick={(e) => e.stopPropagation()}>
                   <RoleSelect member={m} viewerRole={viewerRole} />
