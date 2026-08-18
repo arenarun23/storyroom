@@ -363,7 +363,7 @@ function VideoRow({ video }: { video: Video }) {
                   type="button"
                   disabled={!titleDraft.trim() || pending}
                   onClick={handleSaveTitle}
-                  className="chip border border-line px-2 text-[11px] font-semibold text-teal-deep disabled:pointer-events-none disabled:opacity-50"
+                  className="chip border border-line px-2 text-[11px] font-semibold text-teal-deep transition-colors duration-150 hover:bg-teal-soft active:scale-95 disabled:pointer-events-none disabled:opacity-50"
                 >
                   {pending ? "저장 중..." : "저장"}
                 </button>
@@ -388,14 +388,14 @@ function VideoRow({ video }: { video: Video }) {
               type="button"
               onClick={handleSave}
               disabled={pending}
-              className="chip bg-teal px-4 text-xs font-semibold text-white"
+              className="chip bg-teal px-4 text-xs font-semibold text-white transition-colors duration-150 hover:bg-teal-deep active:scale-95 disabled:pointer-events-none disabled:opacity-50"
             >
-              저장
+              {pending ? "저장 중..." : "저장"}
             </button>
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="chip border border-line px-4 text-xs font-semibold text-muted"
+              className="chip border border-line px-4 text-xs font-semibold text-muted transition-colors duration-150 hover:bg-teal-soft hover:text-ink active:scale-95"
             >
               취소
             </button>
@@ -405,7 +405,7 @@ function VideoRow({ video }: { video: Video }) {
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="chip border border-line px-4 text-xs font-semibold text-ink"
+              className="chip border border-line px-4 text-xs font-semibold text-ink transition-colors duration-150 hover:bg-teal-soft active:scale-95"
             >
               수정
             </button>
@@ -413,9 +413,9 @@ function VideoRow({ video }: { video: Video }) {
               type="button"
               onClick={handleDelete}
               disabled={pending}
-              className="chip border border-line px-4 text-xs font-semibold text-danger"
+              className="chip border border-line px-4 text-xs font-semibold text-danger transition-colors duration-150 hover:bg-danger hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-50"
             >
-              삭제
+              {pending ? "처리 중..." : "삭제"}
             </button>
           </>
         )}
