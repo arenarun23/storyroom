@@ -627,7 +627,7 @@ begin
     return;
   end if;
 
-  select email, raw_user_meta_data into u from auth.users where id = uid;
+  select email, raw_user_meta_data, raw_app_meta_data into u from auth.users where id = uid;
   if u is null then
     return;
   end if;
@@ -644,7 +644,7 @@ begin
     coalesce(u.raw_user_meta_data->>'full_name', u.raw_user_meta_data->>'name', split_part(u.email, '@', 1)),
     u.raw_user_meta_data->>'avatar_url',
     'user',
-    'google',
+    coalesce(u.raw_app_meta_data->>'provider', 'email'),
     init_status,
     case when init_status = 'approved' then now() else null end,
     'L0',
@@ -693,7 +693,7 @@ begin
     coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
     new.raw_user_meta_data->>'avatar_url',
     'user',
-    'google',
+    coalesce(new.raw_app_meta_data->>'provider', 'email'),
     init_status,
     case when init_status = 'approved' then now() else null end,
     'L0',

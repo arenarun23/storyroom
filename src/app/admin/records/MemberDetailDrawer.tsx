@@ -7,6 +7,7 @@ import {
   adminReleaseCooldown,
   adminSetExpiry,
   adminSetLevel,
+  adminSetPassword,
   adminToggleCommentVisibility,
   adminUpdateMemberInfo,
   fetchMemberDetail,
@@ -123,6 +124,8 @@ function BasicInfoTab({
   const [levelCode, setLevelCode] = useState(member.current_level);
   const [reason, setReason] = useState("");
   const [expiry, setExpiry] = useState(member.level_expires_at?.slice(0, 10) ?? "");
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordSaved, setPasswordSaved] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -348,6 +351,45 @@ function BasicInfoTab({
             저장
           </button>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-medium text-muted">비밀번호 재설정</label>
+        <p className="text-xs text-muted">
+          기존 비밀번호는 조회할 수 없습니다 — 새 비밀번호로 덮어쓰는 것만 가능합니다.
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newPassword}
+            onChange={(e) => {
+              setNewPassword(e.target.value);
+              setPasswordSaved(false);
+            }}
+            placeholder="새 비밀번호 (8자 이상)"
+            className="input-field flex-1 px-3 text-sm"
+          />
+          <button
+            type="button"
+            disabled={pending || newPassword.length < 8}
+            onClick={() => {
+              setError(null);
+              startTransition(async () => {
+                const result = await adminSetPassword(member.id, newPassword);
+                if (!result.ok) {
+                  setError(result.message ?? "처리에 실패했습니다.");
+                  return;
+                }
+                setNewPassword("");
+                setPasswordSaved(true);
+              });
+            }}
+            className="chip border border-line px-4 text-xs font-semibold text-ink disabled:opacity-50"
+          >
+            변경
+          </button>
+        </div>
+        {passwordSaved && <p className="text-xs text-teal-deep">비밀번호가 변경되었습니다.</p>}
       </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}

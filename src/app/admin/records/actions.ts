@@ -314,3 +314,83 @@ export async function adminReevaluateAll(): Promise<{ ok: true; count: number } 
   revalidatePath("/admin/records");
   return { ok: true, count: data as number };
 }
+
+// 관리자가 이메일+비밀번호로 회원 계정을 직접 만든다. Supabase Admin API로
+// auth.users를 생성하면 on_auth_user_created 트리거가 profiles 행을 자동으로
+// 만들어준다. 관리자가 직접 만든 계정은 승인 대기 없이 바로 approved로 둔다.
+export async function adminCreateMember(input: {
+  email: string;
+  password: string;
+  displayName: string;
+}): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const client = createAdminClient();
+
+  const email = input.email.trim().toLowerCase();
+  const displayName = input.displayName.trim();
+
+  if (!email || !input.password) {
+    return { ok: false, message: "이메일과 비밀번호를 입력해 주세요." };
+  }
+  if (input.password.length < 8) {
+    return { ok: false, message: "비밀번호는 8자 이상이어야 합니다." };
+  }
+
+  const { data, error } = await client.auth.admin.createUser({
+    email,
+    password: input.password,
+    email_confirm: true,
+    user_metadata: displayName ? { full_name: displayName } : undefined,
+  });
+
+  if (error || !data.user) {
+    if (error?.message?.toLowerCase().includes("already been registered")) {
+      return { ok: false, message: "이미 등록된 이메일입니다." };
+    }
+    return { ok: false, message: "회원 생성에 실패했습니다." };
+  }
+
+  await client
+    .from("profiles")
+    .update({ approval_status: "approved", approved_at: new Date().toISOString(), approved_by: admin.id })
+    .eq("id", data.user.id);
+
+  await client.from("audit_log").insert({
+    admin_id: admin.id,
+    action: "create_member",
+    target_table: "profiles",
+    target_id: data.user.id,
+    after: { email, display_name: displayName || null },
+  });
+
+  revalidatePath("/admin/records");
+  return { ok: true };
+}
+
+// 비밀번호 재설정 — Supabase는 기존 비밀번호를 어떤 API로도 노출하지 않으므로
+// "조회"는 원천적으로 불가능하고, 새 값으로 덮어쓰는 것만 가능하다.
+export async function adminSetPassword(memberId: string, newPassword: string): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const client = createAdminClient();
+
+  if (newPassword.length < 8) {
+    return { ok: false, message: "비밀번호는 8자 이상이어야 합니다." };
+  }
+
+  const { data: target } = await client.from("profiles").select("role").eq("id", memberId).single();
+  if (target?.role === "super_admin" && admin.role !== "super_admin") {
+    return { ok: false, message: "최고관리자의 비밀번호는 최고관리자만 변경할 수 있습니다." };
+  }
+
+  const { error } = await client.auth.admin.updateUserById(memberId, { password: newPassword });
+  if (error) return { ok: false, message: "비밀번호 변경에 실패했습니다." };
+
+  await client.from("audit_log").insert({
+    admin_id: admin.id,
+    action: "reset_password",
+    target_table: "profiles",
+    target_id: memberId,
+  });
+
+  return { ok: true };
+}

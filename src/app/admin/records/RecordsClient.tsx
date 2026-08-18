@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { adminReevaluateAll, adminUpdateMemberInfo } from "@/app/admin/records/actions";
 import MemberDetailDrawer from "@/app/admin/records/MemberDetailDrawer";
+import CreateMemberDialog from "@/app/admin/records/CreateMemberDialog";
 import { formatMinutes, isPast, isWithinWarningWindow } from "@/lib/format";
 import { SUPER_ADMIN_EMAIL } from "@/lib/roles";
 import type { AdminMemberRow, Level, Role } from "@/lib/types";
@@ -58,6 +59,7 @@ export default function RecordsClient({ members, levels, viewerRole }: RecordsCl
   const [sortKey, setSortKey] = useState<SortKey>("level_expires_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [selected, setSelected] = useState<AdminMemberRow | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [reevaluating, setReevaluating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -174,6 +176,13 @@ export default function RecordsClient({ members, levels, viewerRole }: RecordsCl
         <div className="flex gap-2">
           <button
             type="button"
+            onClick={() => setShowCreateDialog(true)}
+            className="chip border border-line px-4 text-xs font-semibold text-ink"
+          >
+            회원 추가
+          </button>
+          <button
+            type="button"
             onClick={handleReevaluate}
             disabled={reevaluating}
             className="chip border border-line px-4 text-xs font-semibold text-ink disabled:opacity-50"
@@ -286,6 +295,8 @@ export default function RecordsClient({ members, levels, viewerRole }: RecordsCl
           onClose={() => setSelected(null)}
         />
       )}
+
+      {showCreateDialog && <CreateMemberDialog onClose={() => setShowCreateDialog(false)} />}
     </div>
   );
 }
