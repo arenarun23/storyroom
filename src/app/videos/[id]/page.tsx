@@ -24,7 +24,7 @@ export default async function VideoDetailPage(props: PageProps<"/videos/[id]">) 
 
   const { data: video } = await supabase
     .from("videos")
-    .select("*, profiles(display_name, current_level)")
+    .select("*, profiles!owner_id(display_name, current_level)")
     .eq("id", id)
     .maybeSingle();
 
