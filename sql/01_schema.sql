@@ -59,6 +59,7 @@ drop function if exists apply_promotion(uuid) cascade;
 drop function if exists apply_reevaluation(uuid) cascade;
 drop function if exists admin_legacy_login_history(uuid) cascade;
 drop function if exists apply_level(uuid, text, text, text, uuid) cascade;
+drop function if exists retention_expiry_date(integer) cascade;
 drop function if exists evaluate_level(uuid) cascade;
 drop function if exists check_rules(uuid, text, text, timestamptz) cascade;
 drop function if exists get_user_metrics(uuid, timestamptz) cascade;
@@ -419,6 +420,19 @@ begin
 end;
 $$;
 
+-- 유지 만료일은 등급유지일(now())로부터 몇 개월 뒤인지 계산해 연도만 뽑고,
+-- 월/일은 등급유지일과 상관없이 무조건 그 해 12월 31일로 고정한다(회계연도
+-- 말일 기준으로 통일해 관리 편의를 높인다).
+create function retention_expiry_date(p_months integer) returns timestamptz
+language plpgsql stable as $$
+declare
+  target_year integer;
+begin
+  target_year := extract(year from (now() + (p_months || ' months')::interval));
+  return (make_date(target_year, 12, 31) + time '23:59:59') at time zone 'Asia/Seoul';
+end;
+$$;
+
 -- §7.5: 등급 변경 적용 + 이력 기록 + 알림 생성
 create function apply_level(
   p_user uuid, p_to_level text, p_reason text, p_change_type text, p_actor uuid default null
@@ -448,7 +462,7 @@ begin
   retention_months := coalesce(cfg_int('retention_months'), 6);
   cooldown_months := coalesce(cfg_int('promotion_cooldown_months'), 1);
 
-  new_expires := case when to_has_retention then now() + (retention_months || ' months')::interval else null end;
+  new_expires := case when to_has_retention then retention_expiry_date(retention_months) else null end;
   new_lock := case when to_order < cur_order then now() + (cooldown_months || ' months')::interval else null end;
 
   perform set_config('app.internal_write', 'on', true);
@@ -510,7 +524,7 @@ begin
     if cur_has_retention then
       retention_months := coalesce(cfg_int('retention_months'), 6);
       perform set_config('app.internal_write', 'on', true);
-      update profiles set level_expires_at = now() + (retention_months || ' months')::interval
+      update profiles set level_expires_at = retention_expiry_date(retention_months)
       where id = p_user;
     end if;
   end if;
@@ -559,7 +573,7 @@ begin
     if cur_has_retention then
       retention_months := coalesce(cfg_int('retention_months'), 6);
       perform set_config('app.internal_write', 'on', true);
-      update profiles set level_expires_at = now() + (retention_months || ' months')::interval
+      update profiles set level_expires_at = retention_expiry_date(retention_months)
       where id = p_user;
     end if;
   end if;
@@ -590,7 +604,7 @@ begin
   loop
     if check_rules(prof.id, prof.current_level, 'retention', since) then
       perform set_config('app.internal_write', 'on', true);
-      update profiles set level_expires_at = now() + (retention_months || ' months')::interval
+      update profiles set level_expires_at = retention_expiry_date(retention_months)
       where id = prof.id;
     else
       select code into lower_level from levels
