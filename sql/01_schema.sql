@@ -1049,7 +1049,7 @@ create function public_stats()
 returns table(teacher_count bigint, video_count bigint)
 language sql stable security definer set search_path = public as $$
   select
-    (select count(*) from profiles where role = 'user' and status = 'active') as teacher_count,
+    (select count(*) from profiles where status = 'active') as teacher_count,
     (select count(*) from videos where status = 'active') as video_count;
 $$;
 

@@ -15,7 +15,7 @@ export default async function AdminDashboardPage() {
 
   const [{ data: levels }, { data: members }, { count: rejectedCount }] = await Promise.all([
     supabase.from("levels").select("*").order("order_no").returns<Level[]>(),
-    supabase.from("profiles").select("current_level, approval_status").eq("role", "user"),
+    supabase.from("profiles").select("current_level, approval_status"),
     supabase.from("videos").select("*", { count: "exact", head: true }).eq("status", "rejected"),
   ]);
 

@@ -61,8 +61,9 @@ export default function LoginPage() {
 
       {error && <p className="text-sm text-danger">{error}</p>}
 
-      <p className="banner max-w-xs bg-teal-soft px-4 py-3 text-sm text-teal-deep">
-        울산교육청 선생님은 우리아이(AI) AIEP 계정(ID@usedu.ai.kr)으로 로그인 해 주세요.
+      <p className="banner max-w-sm bg-teal-soft px-4 py-3 text-lg text-teal-deep">
+        울산교육청 선생님은 <strong className="font-bold">우리아이(AI) AIEP 계정(ID@usedu.ai.kr)</strong>으로
+        로그인 해 주세요.
       </p>
     </div>
   );
