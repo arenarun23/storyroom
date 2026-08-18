@@ -394,3 +394,32 @@ export async function adminSetPassword(memberId: string, newPassword: string): P
 
   return { ok: true };
 }
+
+// 관리자가 등록된 영상을 검토해 삭제(소프트 삭제, FR-210과 동일한 방식이라
+// 되돌릴 수 있다)하거나 삭제됐던/거부됐던 영상을 다시 승인할 수 있게 한다.
+// service role로 업데이트하므로 trg_validate_video_fn의 유튜브 소유권
+// 재검사를 건너뛰고 재승인이 그대로 적용된다.
+export async function adminSetVideoStatus(
+  videoId: string,
+  status: "active" | "deleted",
+): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const client = createAdminClient();
+
+  const { data: before } = await client.from("videos").select("status").eq("id", videoId).single();
+
+  const { error } = await client.from("videos").update({ status }).eq("id", videoId);
+  if (error) return { ok: false, message: "처리에 실패했습니다." };
+
+  await client.from("audit_log").insert({
+    admin_id: admin.id,
+    action: status === "active" ? "approve_video" : "delete_video",
+    target_table: "videos",
+    target_id: videoId,
+    before,
+    after: { status },
+  });
+
+  revalidatePath("/admin/records");
+  return { ok: true };
+}

@@ -8,6 +8,7 @@ import {
   adminSetExpiry,
   adminSetLevel,
   adminSetPassword,
+  adminSetVideoStatus,
   adminToggleCommentVisibility,
   adminUpdateMemberInfo,
   fetchMemberDetail,
@@ -89,7 +90,7 @@ export default function MemberDetailDrawer({ member, levels, viewerRole, onClose
                 <BasicInfoTab member={member} levels={levels} viewerRole={viewerRole} onDone={refreshAndClose} />
               )}
               {tab === "지표" && <MetricsTab detail={detail} />}
-              {tab === "영상" && <VideosTab detail={detail} />}
+              {tab === "영상" && <VideosTab detail={detail} onChanged={() => router.refresh()} />}
               {tab === "활동" && <ActivityTab detail={detail} onChanged={() => router.refresh()} />}
               {tab === "등급 이력" && <HistoryTab detail={detail} levels={levels} />}
               {tab === "AI 코멘트" && (
@@ -476,23 +477,66 @@ function MetricsTab({ detail }: { detail: MemberDetail }) {
   );
 }
 
-function VideosTab({ detail }: { detail: MemberDetail }) {
+// 관리자가 영상을 검토해 삭제하거나(소프트 삭제, 되돌릴 수 있음) 삭제됐던/
+// 거부됐던 영상을 다시 승인할 수 있게 한다.
+function VideosTab({ detail, onChanged }: { detail: MemberDetail; onChanged: () => void }) {
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  function handleSetStatus(videoId: string, status: "active" | "deleted") {
+    setBusyId(videoId);
+    adminSetVideoStatus(videoId, status).finally(() => {
+      setBusyId(null);
+      onChanged();
+    });
+  }
+
   if (detail.videos.length === 0) return <p className="text-sm text-muted">등록한 영상이 없습니다.</p>;
   return (
     <ul className="flex flex-col gap-2">
-      {detail.videos.map((v) => (
-        <li key={v.id} className="card flex flex-col gap-1 p-3 text-sm">
-          <div className="flex items-center gap-2">
-            <span className="chip bg-teal-soft px-2 text-[11px] font-semibold text-teal-deep">
-              {v.platform === "youtube" ? "YouTube" : "스토리룸"}
-            </span>
-            <span className="chip border border-line px-2 text-[11px]">{v.status}</span>
-            {v.is_flagged && <span className="chip bg-gold-soft px-2 text-[11px] text-gold">이상치</span>}
-            <span className="font-mono text-xs text-muted">{formatDuration(v.duration_sec)}</span>
-          </div>
-          <p className="truncate text-xs text-muted">{v.url}</p>
-        </li>
-      ))}
+      {detail.videos.map((v) => {
+        const busy = busyId === v.id;
+        return (
+          <li
+            key={v.id}
+            className={`card flex flex-col gap-2 p-3 text-sm transition-opacity duration-150 ${
+              busy ? "opacity-50" : "opacity-100"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <span className="chip bg-teal-soft px-2 text-[11px] font-semibold text-teal-deep">
+                {v.platform === "youtube" ? "YouTube" : "스토리룸"}
+              </span>
+              <span className="chip border border-line px-2 text-[11px]">{v.status}</span>
+              {v.is_flagged && <span className="chip bg-gold-soft px-2 text-[11px] text-gold">이상치</span>}
+              <span className="font-mono text-xs text-muted">{formatDuration(v.duration_sec)}</span>
+            </div>
+            <p className="truncate text-xs text-muted">{v.url}</p>
+            <div className="flex gap-2">
+              {v.status === "active" ? (
+                <button
+                  type="button"
+                  disabled={busyId !== null}
+                  onClick={() => handleSetStatus(v.id, "deleted")}
+                  className="chip border border-line px-3 text-[11px] font-semibold text-danger transition-colors duration-150 hover:bg-danger hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {busy ? "처리 중..." : "삭제"}
+                </button>
+              ) : (
+                (v.status === "deleted" || v.status === "rejected") && (
+                  <button
+                    type="button"
+                    disabled={busyId !== null}
+                    onClick={() => handleSetStatus(v.id, "active")}
+                    className="chip border border-line px-3 text-[11px] font-semibold text-teal-deep transition-colors duration-150 hover:bg-teal-soft active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    {busy ? "처리 중..." : "다시 승인"}
+                  </button>
+                )
+              )}
+            </div>
+          </li>
+        );
+      })}
     </ul>
   );
 }

@@ -756,11 +756,14 @@ before insert on likes
 for each row execute function trg_block_self_like_fn();
 
 -- trg_validate_video: 시간 상한 검증, url_key 생성, 이상치 표시, 유튜브 소유권 대조
+-- (관리자가 service role로 영상을 재승인할 때는 소유권 재검사를 건너뛴다 —
+-- 유튜브 채널 인증 기능이 아직 없어 일반 등록 경로로는 통과할 수 없기 때문)
 create function trg_validate_video_fn() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare
   max_min integer;
   avg_duration numeric;
+  is_trusted_write boolean;
 begin
   if new.url_key is null and new.url is not null then
     new.url_key := lower(regexp_replace(regexp_replace(new.url, '[?#].*$', ''), '/+$', ''));
@@ -778,7 +781,9 @@ begin
     new.is_flagged := true;
   end if;
 
-  if new.platform = 'youtube' and new.status = 'active' then
+  is_trusted_write := coalesce(auth.role(), 'service_role') = 'service_role';
+
+  if new.platform = 'youtube' and new.status = 'active' and not is_trusted_write then
     if not exists (
       select 1 from profiles
       where id = new.owner_id and yt_channel_id = new.yt_channel_id and yt_verified_at is not null
