@@ -56,7 +56,7 @@ export default function VideoReviewClient({
   videos: AdminVideoRow[];
   members: AdminMemberOption[];
 }) {
-  const [statusFilter, setStatusFilter] = useState<"" | AdminVideoRow["status"]>("rejected");
+  const [statusFilter, setStatusFilter] = useState<"" | AdminVideoRow["status"]>("");
   const [flaggedOnly, setFlaggedOnly] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [reassignForId, setReassignForId] = useState<string | null>(null);
