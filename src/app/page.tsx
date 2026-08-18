@@ -4,10 +4,10 @@ import LevelBadge from "@/components/LevelBadge";
 import type { Level } from "@/lib/types";
 
 const FALLBACK_LEVELS: Pick<Level, "code" | "order_no" | "name" | "badge_color" | "badge_image_url">[] = [
-  { code: "L0", order_no: 0, name: "LEVEL 0", badge_color: "#C3CFCD,#8B9B98", badge_image_url: null },
-  { code: "L1", order_no: 1, name: "LEVEL 1", badge_color: "#6BD3C4,#2A9187", badge_image_url: null },
-  { code: "L2", order_no: 2, name: "LEVEL 2", badge_color: "#1CC0AE,#0A6B62", badge_image_url: null },
-  { code: "L3", order_no: 3, name: "LEVEL 3", badge_color: "#F0D588,#A97615", badge_image_url: null },
+  { code: "L0", order_no: 0, name: "Starter", badge_color: "#C3CFCD,#8B9B98", badge_image_url: null },
+  { code: "L1", order_no: 1, name: "Beginner", badge_color: "#6BD3C4,#2A9187", badge_image_url: null },
+  { code: "L2", order_no: 2, name: "Creator", badge_color: "#1CC0AE,#0A6B62", badge_image_url: null },
+  { code: "L3", order_no: 3, name: "Master", badge_color: "#F0D588,#A97615", badge_image_url: null },
 ];
 
 const STEPS = [

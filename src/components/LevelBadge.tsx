@@ -122,7 +122,7 @@ export default function LevelBadge({
                 fill="rgba(255,255,255,0.88)"
                 style={{ fontFamily: "var(--font-ibm-plex-mono), monospace" }}
               >
-                LEVEL {level.order_no}
+                {level.name}
               </text>
             )}
           </>
