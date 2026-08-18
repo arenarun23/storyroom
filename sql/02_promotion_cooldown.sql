@@ -85,8 +85,7 @@ begin
 
   if prof.manual_override
      or prof.approval_status <> 'approved'
-     or prof.status <> 'active'
-     or prof.role <> 'user' then
+     or prof.status <> 'active' then
     return;
   end if;
 

@@ -55,6 +55,7 @@ drop function if exists run_expiry_warnings() cascade;
 drop function if exists run_cooldown_release() cascade;
 drop function if exists run_retention_check() cascade;
 drop function if exists apply_promotion(uuid) cascade;
+drop function if exists apply_reevaluation(uuid) cascade;
 drop function if exists apply_level(uuid, text, text, text, uuid) cascade;
 drop function if exists evaluate_level(uuid) cascade;
 drop function if exists check_rules(uuid, text, text, timestamptz) cascade;
@@ -477,8 +478,7 @@ begin
 
   if prof.manual_override
      or prof.approval_status <> 'approved'
-     or prof.status <> 'active'
-     or prof.role <> 'user' then
+     or prof.status <> 'active' then
     return;
   end if;
 
@@ -504,6 +504,57 @@ begin
 end;
 $$;
 
+-- 관리자가 등급 기준을 바꾼 뒤 전체 재판정할 때 사용. apply_promotion과 달리
+-- 새 기준에 못 미치면 즉시 강등까지 반영한다(평소 영상 등록 흐름은 여전히
+-- apply_promotion을 써서 즉시 강등 없이 유지 만료일 도달 시에만 강등한다).
+create function apply_reevaluation(p_user uuid) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  prof record;
+  next_level text;
+  cur_order integer;
+  next_order integer;
+  retention_months integer;
+  cur_has_retention boolean;
+begin
+  select * into prof from profiles where id = p_user;
+  if prof is null then return; end if;
+
+  if prof.manual_override
+     or prof.approval_status <> 'approved'
+     or prof.status <> 'active' then
+    return;
+  end if;
+
+  next_level := evaluate_level(p_user);
+  select order_no into cur_order from levels where code = prof.current_level;
+  select order_no into next_order from levels where code = next_level;
+
+  if next_order < cur_order then
+    perform apply_level(p_user, next_level, '기준 변경으로 인한 재판정', 'retention_demotion', null);
+    return;
+  end if;
+
+  if prof.promotion_locked_until is not null and prof.promotion_locked_until > now() then
+    return; -- 승급 잠금(복귀 유예) 중에는 승급·유지 갱신을 보류한다
+  end if;
+
+  if next_order > cur_order then
+    perform apply_level(p_user, next_level, '승급 기준 충족', 'promotion', null);
+  elsif next_order = cur_order then
+    select has_retention into cur_has_retention from levels where code = prof.current_level;
+    if cur_has_retention then
+      retention_months := coalesce(cfg_int('retention_months'), 6);
+      perform set_config('app.internal_write', 'on', true);
+      update profiles set level_expires_at = now() + (retention_months || ' months')::interval
+      where id = p_user;
+    end if;
+  end if;
+end;
+$$;
+
+revoke execute on function apply_reevaluation(uuid) from public, anon, authenticated;
+
 -- §7.3: 유지 심사 및 강등 (매일 배치)
 create function run_retention_check() returns void
 language plpgsql security definer set search_path = public as $$
@@ -521,7 +572,7 @@ begin
     join levels l on l.code = p.current_level
     where p.level_expires_at <= now()
       and p.manual_override = false
-      and p.status = 'active' and p.role = 'user'
+      and p.status = 'active'
       and l.has_retention = true
   loop
     if check_rules(prof.id, prof.current_level, 'retention', since) then
@@ -570,7 +621,7 @@ begin
       and p.level_expires_at is not null
       and p.level_expires_at <= now() + (warn_days || ' days')::interval
       and p.level_expires_at > now()
-      and p.status = 'active' and p.role = 'user'
+      and p.status = 'active'
       and not exists (
         select 1 from notifications n
         where n.user_id = p.id and n.type = 'expiry_warning'

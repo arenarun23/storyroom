@@ -43,7 +43,10 @@ export async function adminCreateRule(input: RuleInput): Promise<ActionResult> {
     after: input,
   });
 
+  await client.rpc("admin_reevaluate_all");
+
   revalidatePath("/admin/rules");
+  revalidatePath("/admin/records");
   return { ok: true };
 }
 
@@ -65,7 +68,10 @@ export async function adminUpdateRule(
     after: patch,
   });
 
+  await client.rpc("admin_reevaluate_all");
+
   revalidatePath("/admin/rules");
+  revalidatePath("/admin/records");
   return { ok: true };
 }
 
@@ -83,7 +89,10 @@ export async function adminDeleteRule(id: string): Promise<ActionResult> {
     target_id: id,
   });
 
+  await client.rpc("admin_reevaluate_all");
+
   revalidatePath("/admin/rules");
+  revalidatePath("/admin/records");
   return { ok: true };
 }
 
