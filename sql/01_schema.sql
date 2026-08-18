@@ -45,6 +45,7 @@ drop trigger if exists on_auth_user_created on auth.users;
 
 drop function if exists list_videos_feed(text, text, bigint, timestamptz, uuid, integer) cascade;
 drop function if exists admin_reassign_video(uuid, uuid, uuid) cascade;
+drop function if exists admin_reset_video(uuid, uuid) cascade;
 drop function if exists release_cooldown_early(uuid, uuid) cascade;
 drop function if exists public_stats() cascade;
 drop function if exists ensure_profile() cascade;
@@ -137,6 +138,7 @@ create table videos (
   yt_synced_at    timestamptz,
   is_flagged      boolean not null default false,
   status          text not null default 'active' check (status in ('active','rejected','deleted','withdrawn','reset')),
+  reassigned_to_id uuid references profiles(id) on delete set null,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
@@ -597,7 +599,8 @@ begin
   update comments set actor_id = null where actor_id = p_user;
 
   update videos
-  set owner_id = null, title = null, url = null, url_key = null, thumbnail_url = null, status = 'withdrawn'
+  set owner_id = null, title = null, url = null, url_key = 'withdrawn:' || id::text, thumbnail_url = null,
+      status = 'withdrawn'
   where owner_id = p_user;
 
   delete from auth.users where id = p_user; -- profiles는 CASCADE로 함께 삭제(BR-002)
@@ -837,7 +840,8 @@ begin
   end if;
 
   update videos
-  set owner_id = null, title = null, url = null, url_key = null, thumbnail_url = null, status = 'reset'
+  set owner_id = null, url_key = 'reset:' || id::text,
+      status = 'reset', reassigned_to_id = p_new_owner_id
   where id = p_video_id;
 
   insert into videos (
@@ -860,6 +864,31 @@ end;
 $$;
 
 revoke execute on function admin_reassign_video(uuid, uuid, uuid) from public, anon, authenticated;
+
+-- admin_reset_video: 대상 회원 지정 없이 영상을 그냥 초기화(무효화)한다.
+create function admin_reset_video(p_video_id uuid, p_admin_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  v_before jsonb;
+begin
+  select jsonb_build_object('owner_id', owner_id, 'title', title, 'url', url) into v_before
+  from videos where id = p_video_id
+  for update;
+
+  if v_before is null then
+    raise exception '영상을 찾을 수 없습니다';
+  end if;
+
+  update videos
+  set owner_id = null, url_key = 'reset:' || id::text, status = 'reset', reassigned_to_id = null
+  where id = p_video_id;
+
+  insert into audit_log (admin_id, action, target_table, target_id, before, after)
+  values (p_admin_id, 'reset_video', 'videos', p_video_id, v_before, jsonb_build_object('reset', true));
+end;
+$$;
+
+revoke execute on function admin_reset_video(uuid, uuid) from public, anon, authenticated;
 
 -- trg_validate_comment: 최소 글자수 검증 + 최근활동일 갱신
 create function trg_validate_comment_fn() returns trigger

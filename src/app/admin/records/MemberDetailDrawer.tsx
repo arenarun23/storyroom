@@ -6,6 +6,7 @@ import {
   adminClearManualOverride,
   adminReassignVideo,
   adminReleaseCooldown,
+  adminResetVideo,
   adminSetExpiry,
   adminSetLevel,
   adminSetPassword,
@@ -529,6 +530,16 @@ function VideosTab({
     });
   }
 
+  function handleResetOnly(videoId: string) {
+    setBusyId(videoId);
+    adminResetVideo(videoId).finally(() => {
+      setBusyId(null);
+      setReassignForId(null);
+      setReassignTarget("");
+      onChanged();
+    });
+  }
+
   if (detail.videos.length === 0) return <p className="text-sm text-muted">등록한 영상이 없습니다.</p>;
   return (
     <ul className="flex flex-col gap-2">
@@ -604,8 +615,17 @@ function VideosTab({
                   >
                     {busy ? "처리 중..." : "선택 계정으로 승인"}
                   </button>
+                  <button
+                    type="button"
+                    disabled={busyId !== null}
+                    onClick={() => handleResetOnly(v.id)}
+                    className="chip border border-line px-3 text-[11px] font-semibold text-muted transition-colors duration-150 hover:bg-danger/10 hover:text-danger active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    {busy ? "처리 중..." : "회원 선택 없이 초기화"}
+                  </button>
                   <p className="w-full text-[11px] text-muted">
-                    원본 기록은 초기화되어 남고, 선택한 회원 계정으로 새로 등록·승인됩니다.
+                    원본 기록은 초기화되어 남고, 선택한 회원 계정으로 새로 등록·승인됩니다. 회원을
+                    선택하지 않고 초기화만 하면 어느 계정에도 등록되지 않습니다.
                   </p>
                 </div>
               )}
