@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   adminClearManualOverride,
+  adminReassignVideo,
   adminReleaseCooldown,
   adminSetExpiry,
   adminSetLevel,
@@ -17,6 +18,7 @@ import {
 import { formatDuration, isPast } from "@/lib/format";
 import { SUPER_ADMIN_EMAIL } from "@/lib/roles";
 import { REGIONS } from "@/lib/regions";
+import MemberSearchSelect from "@/components/MemberSearchSelect";
 import type { AdminMemberRow, Level, Role } from "@/lib/types";
 
 const TABS = ["기본 정보", "지표", "영상", "활동", "등급 이력", "AI 코멘트"] as const;
@@ -26,10 +28,17 @@ interface MemberDetailDrawerProps {
   member: AdminMemberRow;
   levels: Level[];
   viewerRole: Role;
+  allMembers: AdminMemberRow[];
   onClose: () => void;
 }
 
-export default function MemberDetailDrawer({ member, levels, viewerRole, onClose }: MemberDetailDrawerProps) {
+export default function MemberDetailDrawer({
+  member,
+  levels,
+  viewerRole,
+  allMembers,
+  onClose,
+}: MemberDetailDrawerProps) {
   const [tab, setTab] = useState<Tab>("기본 정보");
   const [detail, setDetail] = useState<MemberDetail | null>(null);
   const loading = detail === null;
@@ -90,7 +99,15 @@ export default function MemberDetailDrawer({ member, levels, viewerRole, onClose
                 <BasicInfoTab member={member} levels={levels} viewerRole={viewerRole} onDone={refreshAndClose} />
               )}
               {tab === "지표" && <MetricsTab detail={detail} />}
-              {tab === "영상" && <VideosTab detail={detail} onChanged={() => router.refresh()} />}
+              {tab === "영상" && (
+                <VideosTab
+                  detail={detail}
+                  otherMembers={allMembers.filter(
+                    (m) => m.id !== member.id && m.approval_status === "approved" && m.status === "active",
+                  )}
+                  onChanged={() => router.refresh()}
+                />
+              )}
               {tab === "활동" && <ActivityTab detail={detail} onChanged={() => router.refresh()} />}
               {tab === "등급 이력" && <HistoryTab detail={detail} levels={levels} />}
               {tab === "AI 코멘트" && (
@@ -478,14 +495,36 @@ function MetricsTab({ detail }: { detail: MemberDetail }) {
 }
 
 // 관리자가 영상을 검토해 삭제하거나(소프트 삭제, 되돌릴 수 있음) 삭제됐던/
-// 거부됐던 영상을 다시 승인할 수 있게 한다.
-function VideosTab({ detail, onChanged }: { detail: MemberDetail; onChanged: () => void }) {
+// 거부됐던 영상을 다시 승인할 수 있게 한다. 재승인 시 원래 계정으로
+// 승인하거나, 완전 초기화해서 다른 회원 계정으로 재배정할 수 있다.
+function VideosTab({
+  detail,
+  otherMembers,
+  onChanged,
+}: {
+  detail: MemberDetail;
+  otherMembers: AdminMemberRow[];
+  onChanged: () => void;
+}) {
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [reassignForId, setReassignForId] = useState<string | null>(null);
+  const [reassignTarget, setReassignTarget] = useState("");
 
   function handleSetStatus(videoId: string, status: "active" | "deleted") {
     setBusyId(videoId);
     adminSetVideoStatus(videoId, status).finally(() => {
       setBusyId(null);
+      onChanged();
+    });
+  }
+
+  function handleReassign(videoId: string) {
+    if (!reassignTarget) return;
+    setBusyId(videoId);
+    adminReassignVideo(videoId, reassignTarget).finally(() => {
+      setBusyId(null);
+      setReassignForId(null);
+      setReassignTarget("");
       onChanged();
     });
   }
@@ -511,27 +550,64 @@ function VideosTab({ detail, onChanged }: { detail: MemberDetail; onChanged: () 
               <span className="font-mono text-xs text-muted">{formatDuration(v.duration_sec)}</span>
             </div>
             <p className="truncate text-xs text-muted">{v.url}</p>
-            <div className="flex gap-2">
-              {v.status === "active" ? (
-                <button
-                  type="button"
-                  disabled={busyId !== null}
-                  onClick={() => handleSetStatus(v.id, "deleted")}
-                  className="chip border border-line px-3 text-[11px] font-semibold text-danger transition-colors duration-150 hover:bg-danger hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-50"
-                >
-                  {busy ? "처리 중..." : "삭제"}
-                </button>
-              ) : (
-                (v.status === "deleted" || v.status === "rejected") && (
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                {v.status === "active" ? (
                   <button
                     type="button"
                     disabled={busyId !== null}
-                    onClick={() => handleSetStatus(v.id, "active")}
-                    className="chip border border-line px-3 text-[11px] font-semibold text-teal-deep transition-colors duration-150 hover:bg-teal-soft active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+                    onClick={() => handleSetStatus(v.id, "deleted")}
+                    className="chip border border-line px-3 text-[11px] font-semibold text-danger transition-colors duration-150 hover:bg-danger hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-50"
                   >
-                    {busy ? "처리 중..." : "다시 승인"}
+                    {busy ? "처리 중..." : "삭제"}
                   </button>
-                )
+                ) : (
+                  (v.status === "deleted" || v.status === "rejected") && (
+                    <>
+                      <button
+                        type="button"
+                        disabled={busyId !== null}
+                        onClick={() => handleSetStatus(v.id, "active")}
+                        className="chip border border-line px-3 text-[11px] font-semibold text-teal-deep transition-colors duration-150 hover:bg-teal-soft active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        {busy ? "처리 중..." : "원본 계정으로 승인"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyId !== null}
+                        onClick={() =>
+                          reassignForId === v.id
+                            ? setReassignForId(null)
+                            : (setReassignForId(v.id), setReassignTarget(""))
+                        }
+                        className={`chip border px-3 text-[11px] font-semibold transition-colors duration-150 active:scale-95 disabled:pointer-events-none disabled:opacity-50 ${
+                          reassignForId === v.id
+                            ? "border-gold bg-gold-soft text-gold"
+                            : "border-line text-muted hover:text-ink"
+                        }`}
+                      >
+                        다른 계정으로 승인(초기화)
+                      </button>
+                    </>
+                  )
+                )}
+              </div>
+
+              {reassignForId === v.id && (
+                <div className="flex flex-wrap items-center gap-2 rounded-[10px] border border-line bg-paper p-3">
+                  <MemberSearchSelect members={otherMembers} value={reassignTarget} onChange={setReassignTarget} />
+                  <button
+                    type="button"
+                    disabled={!reassignTarget || busyId !== null}
+                    onClick={() => handleReassign(v.id)}
+                    className="chip border border-gold bg-gold-soft px-3 text-[11px] font-semibold text-gold transition-colors duration-150 hover:bg-gold hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    {busy ? "처리 중..." : "선택 계정으로 승인"}
+                  </button>
+                  <p className="w-full text-[11px] text-muted">
+                    원본 기록은 초기화되어 남고, 선택한 회원 계정으로 새로 등록·승인됩니다.
+                  </p>
+                </div>
               )}
             </div>
           </li>

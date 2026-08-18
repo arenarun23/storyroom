@@ -292,6 +292,7 @@ export default function RecordsClient({ members, levels, viewerRole }: RecordsCl
           member={selected}
           levels={levels}
           viewerRole={viewerRole}
+          allMembers={members}
           onClose={() => setSelected(null)}
         />
       )}

@@ -5,7 +5,7 @@ export type ApprovalStatus = "pending" | "approved" | "rejected";
 export type ProfileStatus = "active" | "suspended" | "withdrawn";
 export type Platform = "storyroom" | "youtube";
 export type DurationSource = "auto" | "manual" | "api";
-export type VideoStatus = "active" | "rejected" | "deleted" | "withdrawn";
+export type VideoStatus = "active" | "rejected" | "deleted" | "withdrawn" | "reset";
 
 export interface Level {
   code: string;

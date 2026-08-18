@@ -423,3 +423,22 @@ export async function adminSetVideoStatus(
   revalidatePath("/admin/records");
   return { ok: true };
 }
+
+// 거절/삭제된 영상을 다른 사용자 계정으로 재배정해 승인한다(완전 초기화).
+// 원본 기록은 남지만(status='reset') 식별정보는 비우고, 같은 영상 내용을
+// 새 행으로 지정한 회원 계정에 등록해 승인한다.
+export async function adminReassignVideo(videoId: string, newOwnerId: string): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const client = createAdminClient();
+
+  const { error } = await client.rpc("admin_reassign_video", {
+    p_video_id: videoId,
+    p_new_owner_id: newOwnerId,
+    p_admin_id: admin.id,
+  });
+  if (error) return { ok: false, message: error.message || "재배정에 실패했습니다." };
+
+  revalidatePath("/admin/records");
+  revalidatePath("/admin/videos");
+  return { ok: true };
+}

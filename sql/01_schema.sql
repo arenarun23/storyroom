@@ -44,6 +44,7 @@ drop table if exists app_config cascade;
 drop trigger if exists on_auth_user_created on auth.users;
 
 drop function if exists list_videos_feed(text, text, bigint, timestamptz, uuid, integer) cascade;
+drop function if exists admin_reassign_video(uuid, uuid, uuid) cascade;
 drop function if exists release_cooldown_early(uuid, uuid) cascade;
 drop function if exists public_stats() cascade;
 drop function if exists ensure_profile() cascade;
@@ -135,7 +136,7 @@ create table videos (
   yt_comments     bigint not null default 0,
   yt_synced_at    timestamptz,
   is_flagged      boolean not null default false,
-  status          text not null default 'active' check (status in ('active','rejected','deleted','withdrawn')),
+  status          text not null default 'active' check (status in ('active','rejected','deleted','withdrawn','reset')),
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
@@ -803,6 +804,62 @@ for each row execute function trg_validate_video_fn();
 create trigger trg_videos_set_updated_at
 before update on videos
 for each row execute function set_updated_at();
+
+-- admin_reassign_video: 거절/삭제된 영상을 다른 사용자 계정으로 재배정해 승인한다.
+-- 원본 기록은 남기되(status='reset') 식별정보(소유자/제목/url)를 비워 url_key
+-- 유니크 제약과 충돌하지 않게 하고, 같은 내용을 새 행으로 다른 계정에 등록한다.
+create function admin_reassign_video(
+  p_video_id uuid, p_new_owner_id uuid, p_admin_id uuid
+) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare
+  v_platform text;
+  v_title text;
+  v_url text;
+  v_duration_sec integer;
+  v_duration_source text;
+  v_thumbnail_url text;
+  v_yt_video_id text;
+  v_yt_channel_id text;
+  v_new_id uuid;
+begin
+  select platform, title, url, duration_sec, duration_source, thumbnail_url, yt_video_id, yt_channel_id
+  into v_platform, v_title, v_url, v_duration_sec, v_duration_source, v_thumbnail_url, v_yt_video_id, v_yt_channel_id
+  from videos where id = p_video_id
+  for update;
+
+  if not found then
+    raise exception '영상을 찾을 수 없습니다';
+  end if;
+
+  if not exists (select 1 from profiles where id = p_new_owner_id) then
+    raise exception '대상 회원을 찾을 수 없습니다';
+  end if;
+
+  update videos
+  set owner_id = null, title = null, url = null, url_key = null, thumbnail_url = null, status = 'reset'
+  where id = p_video_id;
+
+  insert into videos (
+    owner_id, platform, title, url, duration_sec, duration_source,
+    thumbnail_url, yt_video_id, yt_channel_id, status
+  ) values (
+    p_new_owner_id, v_platform, v_title, v_url, v_duration_sec, v_duration_source,
+    v_thumbnail_url, v_yt_video_id, v_yt_channel_id, 'active'
+  ) returning id into v_new_id;
+
+  insert into audit_log (admin_id, action, target_table, target_id, before, after)
+  values (
+    p_admin_id, 'reassign_video', 'videos', p_video_id,
+    jsonb_build_object('platform', v_platform, 'title', v_title, 'url', v_url),
+    jsonb_build_object('reset', true, 'new_video_id', v_new_id, 'new_owner_id', p_new_owner_id)
+  );
+
+  return v_new_id;
+end;
+$$;
+
+revoke execute on function admin_reassign_video(uuid, uuid, uuid) from public, anon, authenticated;
 
 -- trg_validate_comment: 최소 글자수 검증 + 최근활동일 갱신
 create function trg_validate_comment_fn() returns trigger
