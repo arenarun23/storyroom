@@ -45,6 +45,8 @@ export default function MemberDetailDrawer({
   const [detail, setDetail] = useState<MemberDetail | null>(null);
   const loading = detail === null;
   const router = useRouter();
+  // 로그인 기록은 최고관리자만 볼 수 있다
+  const visibleTabs = TABS.filter((t) => t !== "로그인 기록" || viewerRole === "super_admin");
 
   useEffect(() => {
     let cancelled = false;
@@ -78,7 +80,7 @@ export default function MemberDetailDrawer({
         </div>
 
         <div className="flex gap-1 overflow-x-auto border-b border-line px-4 py-2">
-          {TABS.map((t) => (
+          {visibleTabs.map((t) => (
             <button
               key={t}
               type="button"

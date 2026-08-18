@@ -1086,9 +1086,9 @@ create policy notifications_mark_read on notifications for update to authenticat
 create policy audit_log_select on audit_log for select to authenticated
   using (is_admin());
 
--- login_history: admin만 조회, 쓰기는 시스템
+-- login_history: 최고관리자만 조회, 쓰기는 시스템
 create policy login_history_select on login_history for select to authenticated
-  using (is_admin());
+  using (exists (select 1 from profiles where id = auth.uid() and role = 'super_admin'));
 
 -- =====================================================================
 -- 5. 초기 데이터 (§6.4, §6.5, §5.1)
