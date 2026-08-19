@@ -1198,11 +1198,11 @@ insert into app_config (key, value, description) values
   ('yt_sync_hour', '3', '유튜브 동기화 시각(KST)'),
   ('ai_monthly_limit', '500', 'AI 코멘트 월 상한');
 
-insert into levels (code, order_no, name, badge_color, has_retention) values
-  ('L0', 0, 'Starter', '#C3CFCD,#8B9B98', false),
-  ('L1', 1, 'Beginner', '#6BD3C4,#2A9187', true),
-  ('L2', 2, 'Creator', '#1CC0AE,#0A6B62', true),
-  ('L3', 3, 'Master', '#F0D588,#A97615', true);
+insert into levels (code, order_no, name, badge_color, badge_image_url, has_retention) values
+  ('L0', 0, 'Starter', '#C3CFCD,#8B9B98', '/badges/starter.png', false),
+  ('L1', 1, 'Beginner', '#6BD3C4,#2A9187', '/badges/beginner.png', true),
+  ('L2', 2, 'Creator', '#1CC0AE,#0A6B62', '/badges/creator.png', true),
+  ('L3', 3, 'Master', '#F0D588,#A97615', '/badges/master.png', true);
 
 -- 랜딩 페이지(SCR-01)용 공개 통계. RLS는 authenticated 대상이므로 비로그인
 -- 방문자를 위해 SECURITY DEFINER 함수로 집계값만 노출한다(개인정보 없음).

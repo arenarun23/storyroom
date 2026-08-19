@@ -31,11 +31,40 @@ export default function LevelBadge({
 }: LevelBadgeProps) {
   const [fromColor, toColor] = (level.badge_color ?? "#C3CFCD,#8B9B98").split(",");
   const gradId = `badge-grad-${level.code}`;
-  const clipId = `badge-clip-${level.code}`;
 
   const circumference = 2 * Math.PI * 95;
   const clamped = progress != null ? Math.min(Math.max(progress, 0), 1) : 0;
   const dash = circumference * clamped;
+
+  if (level.badge_image_url) {
+    return (
+      <div
+        role="img"
+        aria-label={`${level.name} 등급 뱃지`}
+        style={{ width: size, height: size, filter: "drop-shadow(0 4px 6px rgba(12,29,27,.26))" }}
+        className="relative shrink-0"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={level.badge_image_url} alt="" className="h-full w-full object-contain" />
+        {progress != null && (
+          <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full">
+            <circle cx="100" cy="100" r="97" fill="none" stroke="var(--line)" strokeWidth="6" />
+            <circle
+              cx="100"
+              cy="100"
+              r="97"
+              fill="none"
+              stroke="var(--teal)"
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeDasharray={`${dash * (97 / 95)} ${circumference * (97 / 95)}`}
+              transform="rotate(-90 100 100)"
+            />
+          </svg>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -50,9 +79,6 @@ export default function LevelBadge({
             <stop offset="0%" stopColor={fromColor} />
             <stop offset="100%" stopColor={toColor} />
           </linearGradient>
-          <clipPath id={clipId}>
-            <polygon points={HEX_POINTS} />
-          </clipPath>
         </defs>
 
         {progress != null && (
@@ -72,60 +98,46 @@ export default function LevelBadge({
           </>
         )}
 
-        {level.badge_image_url ? (
-          <image
-            href={level.badge_image_url}
-            x="15"
-            y="15"
-            width="170"
-            height="170"
-            clipPath={`url(#${clipId})`}
-            preserveAspectRatio="xMidYMid slice"
-          />
-        ) : (
-          <>
-            <polygon points={HEX_POINTS} fill={`url(#${gradId})`} />
-            <polygon
-              points={HEX_POINTS}
-              fill="none"
-              stroke="rgba(255,255,255,0.45)"
-              strokeWidth="2"
-              transform="translate(100 100) scale(0.92) translate(-100 -100)"
-            />
-            {HEX_VERTICES.map(([x, y], i) => (
-              <circle key={i} cx={x} cy={y} r="4" fill="rgba(255,255,255,0.55)" />
-            ))}
-            <polygon
-              points="30,60 100,15 100,70 55,95"
-              fill="white"
-              opacity="0.25"
-              style={{ mixBlendMode: "screen" }}
-            />
-            <text
-              x="100"
-              y="108"
-              textAnchor="middle"
-              fontSize="54"
-              fontWeight="900"
-              fill="white"
-              style={{ fontFamily: "var(--font-noto-serif-kr), serif" }}
-            >
-              {levelRoman(level.order_no)}
-            </text>
-            {showCaption && (
-              <text
-                x="100"
-                y="136"
-                textAnchor="middle"
-                fontSize="13"
-                letterSpacing="2"
-                fill="rgba(255,255,255,0.88)"
-                style={{ fontFamily: "var(--font-ibm-plex-mono), monospace" }}
-              >
-                {level.name}
-              </text>
-            )}
-          </>
+        <polygon points={HEX_POINTS} fill={`url(#${gradId})`} />
+        <polygon
+          points={HEX_POINTS}
+          fill="none"
+          stroke="rgba(255,255,255,0.45)"
+          strokeWidth="2"
+          transform="translate(100 100) scale(0.92) translate(-100 -100)"
+        />
+        {HEX_VERTICES.map(([x, y], i) => (
+          <circle key={i} cx={x} cy={y} r="4" fill="rgba(255,255,255,0.55)" />
+        ))}
+        <polygon
+          points="30,60 100,15 100,70 55,95"
+          fill="white"
+          opacity="0.25"
+          style={{ mixBlendMode: "screen" }}
+        />
+        <text
+          x="100"
+          y="108"
+          textAnchor="middle"
+          fontSize="54"
+          fontWeight="900"
+          fill="white"
+          style={{ fontFamily: "var(--font-noto-serif-kr), serif" }}
+        >
+          {levelRoman(level.order_no)}
+        </text>
+        {showCaption && (
+          <text
+            x="100"
+            y="136"
+            textAnchor="middle"
+            fontSize="13"
+            letterSpacing="2"
+            fill="rgba(255,255,255,0.88)"
+            style={{ fontFamily: "var(--font-ibm-plex-mono), monospace" }}
+          >
+            {level.name}
+          </text>
         )}
       </svg>
     </div>
