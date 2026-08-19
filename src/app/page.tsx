@@ -100,12 +100,8 @@ export default async function LandingPage() {
               <div key={level.code} className="flex flex-col items-center gap-2">
                 <LevelBadge level={level} size="101px" showCaption={false} />
                 <span
-                  className="font-nanum text-[15px] font-bold"
-                  style={{
-                    color: badgeColor,
-                    WebkitTextStroke: "0.6px white",
-                    paintOrder: "stroke fill",
-                  }}
+                  className="rounded-[8px] border px-2.5 py-1 font-nanum text-[15px] font-bold"
+                  style={{ color: badgeColor, borderColor: badgeColor }}
                 >
                   {level.name}
                 </span>
