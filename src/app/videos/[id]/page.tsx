@@ -17,16 +17,15 @@ export default async function VideoDetailPage(props: PageProps<"/videos/[id]">) 
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: profile }, { data: levels }] = await Promise.all([
+  const [{ data: profile }, { data: levels }, { data: video }] = await Promise.all([
     supabase.from("profiles").select("display_name, avatar_url, role").eq("id", user.id).single(),
     supabase.from("levels").select("*").order("order_no").returns<Level[]>(),
+    supabase
+      .from("videos")
+      .select("*, profiles!owner_id(display_name, current_level)")
+      .eq("id", id)
+      .maybeSingle(),
   ]);
-
-  const { data: video } = await supabase
-    .from("videos")
-    .select("*, profiles!owner_id(display_name, current_level)")
-    .eq("id", id)
-    .maybeSingle();
 
   if (!video) notFound();
 

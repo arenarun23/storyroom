@@ -36,6 +36,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <head>
+        {/* CDN 연결(DNS/TLS)을 스타일시트 요청 전에 미리 시작해 렌더 차단 시간을 줄인다 */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
         {/* Pretendard: Google Fonts 미지원 — jsDelivr CDN variable 폰트 사용 */}
         <link
           rel="stylesheet"

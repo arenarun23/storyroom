@@ -42,13 +42,18 @@ export async function proxy(request: NextRequest) {
   let needsOnboarding = false;
 
   if (isAuthed) {
-    await supabase.rpc("ensure_profile");
+    // 매 요청마다 ensure_profile()을 호출하면 왕복이 하나 더 늘어 모든 페이지
+    // 전환이 느려진다. profiles 행은 회원가입 시 트리거로 이미 만들어지므로
+    // (§11.4 on_auth_user_created), 정상적인 경우 이 select 한 번으로 끝난다.
+    // 행이 없을 때(스키마 재구성 등 예외 상황)만 ensure_profile()로 복구한다.
+    const profileQuery = () =>
+      supabase.from("profiles").select("role, real_name, region, phone").eq("id", user!.id).single();
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, real_name, region, phone")
-      .eq("id", user!.id)
-      .single();
+    let { data: profile } = await profileQuery();
+    if (!profile) {
+      await supabase.rpc("ensure_profile");
+      ({ data: profile } = await profileQuery());
+    }
 
     isAdmin = isAdminRole(profile?.role);
     // 역할과 무관하게(관리자·최고관리자 포함) 필수 정보가 비어있으면 온보딩이 필요하다.
