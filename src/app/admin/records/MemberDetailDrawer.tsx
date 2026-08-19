@@ -58,11 +58,6 @@ export default function MemberDetailDrawer({
     };
   }, [member.id]);
 
-  function refreshAndClose() {
-    router.refresh();
-    onClose();
-  }
-
   return (
     <div className="fixed inset-0 z-30 flex justify-end bg-ink/40" onClick={onClose}>
       <div
@@ -74,7 +69,11 @@ export default function MemberDetailDrawer({
             <p className="text-sm font-semibold text-ink">{member.display_name ?? "이름 없음"}</p>
             <p className="text-xs text-muted">{member.email}</p>
           </div>
-          <button type="button" onClick={onClose} className="text-xl text-muted hover:text-ink">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-xl text-muted transition-colors duration-150 hover:text-ink active:scale-90"
+          >
             ×
           </button>
         </div>
@@ -85,8 +84,8 @@ export default function MemberDetailDrawer({
               key={t}
               type="button"
               onClick={() => setTab(t)}
-              className={`shrink-0 rounded-[10px] px-3 py-1.5 text-xs font-medium ${
-                tab === t ? "bg-teal-soft text-teal-deep" : "text-muted"
+              className={`shrink-0 rounded-[10px] px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
+                tab === t ? "bg-teal-soft text-teal-deep" : "text-muted hover:bg-teal-soft/50 hover:text-ink"
               }`}
             >
               {t}
@@ -100,7 +99,12 @@ export default function MemberDetailDrawer({
           ) : (
             <>
               {tab === "기본 정보" && (
-                <BasicInfoTab member={member} levels={levels} viewerRole={viewerRole} onDone={refreshAndClose} />
+                <BasicInfoTab
+                  member={member}
+                  levels={levels}
+                  viewerRole={viewerRole}
+                  onDone={() => router.refresh()}
+                />
               )}
               {tab === "지표" && <MetricsTab detail={detail} />}
               {tab === "영상" && (
@@ -148,23 +152,50 @@ function BasicInfoTab({
   const [reason, setReason] = useState("");
   const [expiry, setExpiry] = useState(member.level_expires_at?.slice(0, 10) ?? "");
   const [newPassword, setNewPassword] = useState("");
-  const [passwordSaved, setPasswordSaved] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // 버튼별로 "처리 중"/"완료" 표시를 구분해서 보여주기 위한 키. pending은
+  // useTransition 하나를 여러 버튼이 공유하므로, 지금 어떤 버튼이 눌렸는지는
+  // activeKey로, 방금 끝난 버튼은 doneKey로 따로 추적한다.
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [doneKey, setDoneKey] = useState<string | null>(null);
 
   const isCoolingDown = !!member.promotion_locked_until && !isPast(member.promotion_locked_until);
 
-  function run(action: () => Promise<{ ok: boolean; message?: string }>) {
+  function run(key: string, action: () => Promise<{ ok: boolean; message?: string }>) {
     setError(null);
+    setActiveKey(key);
+    setDoneKey(null);
     startTransition(async () => {
-      const result = await action();
-      if (!result.ok) {
-        setError(result.message ?? "처리에 실패했습니다.");
-        return;
+      try {
+        const result = await action();
+        setActiveKey(null);
+        if (!result.ok) {
+          setError(result.message ?? "처리에 실패했습니다.");
+          return;
+        }
+        setDoneKey(key);
+        window.setTimeout(() => setDoneKey((k) => (k === key ? null : k)), 1500);
+        onDone();
+      } catch {
+        setActiveKey(null);
+        setError("처리 중 오류가 발생했습니다.");
       }
-      onDone();
     });
   }
+
+  function label(key: string, idle: string) {
+    if (pending && activeKey === key) return "처리 중...";
+    if (doneKey === key) return "완료 ✓";
+    return idle;
+  }
+
+  const primaryBtn =
+    "chip bg-teal px-4 text-xs font-semibold text-white transition-colors duration-150 hover:bg-teal-deep active:scale-95 disabled:pointer-events-none disabled:opacity-50";
+  const secondaryBtn =
+    "chip border border-line px-4 text-xs font-semibold text-ink transition-colors duration-150 hover:bg-teal-soft hover:text-teal-deep active:scale-95 disabled:pointer-events-none disabled:opacity-50";
+  const secondaryBtnSm =
+    "chip border border-line px-3 text-xs font-semibold text-ink transition-colors duration-150 hover:bg-teal-soft hover:text-teal-deep active:scale-95 disabled:pointer-events-none disabled:opacity-50";
 
   return (
     <div className="flex flex-col gap-6">
@@ -179,10 +210,10 @@ function BasicInfoTab({
           <button
             type="button"
             disabled={pending}
-            onClick={() => run(() => adminUpdateMemberInfo(member.id, { display_name: displayName }))}
-            className="chip bg-teal px-4 text-xs font-semibold text-white"
+            onClick={() => run("displayName", () => adminUpdateMemberInfo(member.id, { display_name: displayName }))}
+            className={primaryBtn}
           >
-            저장
+            {label("displayName", "저장")}
           </button>
         </div>
       </div>
@@ -230,7 +261,7 @@ function BasicInfoTab({
           type="button"
           disabled={pending}
           onClick={() =>
-            run(() =>
+            run("onboarding", () =>
               adminUpdateMemberInfo(member.id, {
                 real_name: realName || null,
                 region: region || null,
@@ -239,9 +270,9 @@ function BasicInfoTab({
               }),
             )
           }
-          className="chip self-start bg-teal px-4 text-xs font-semibold text-white"
+          className={`self-start ${primaryBtn}`}
         >
-          저장
+          {label("onboarding", "저장")}
         </button>
       </div>
 
@@ -268,10 +299,10 @@ function BasicInfoTab({
               <button
                 type="button"
                 disabled={pending}
-                onClick={() => run(() => adminUpdateMemberInfo(member.id, { role }))}
-                className="chip border border-line px-3 text-xs font-semibold text-ink"
+                onClick={() => run("role", () => adminUpdateMemberInfo(member.id, { role }))}
+                className={secondaryBtnSm}
               >
-                저장
+                {label("role", "저장")}
               </button>
             </div>
           )}
@@ -292,10 +323,10 @@ function BasicInfoTab({
             <button
               type="button"
               disabled={pending}
-              onClick={() => run(() => adminUpdateMemberInfo(member.id, { status }))}
-              className="chip border border-line px-3 text-xs font-semibold text-ink"
+              onClick={() => run("status", () => adminUpdateMemberInfo(member.id, { status }))}
+              className={secondaryBtnSm}
             >
-              저장
+              {label("status", "저장")}
             </button>
           </div>
         </div>
@@ -325,20 +356,20 @@ function BasicInfoTab({
         <button
           type="button"
           disabled={pending}
-          onClick={() => run(() => adminSetLevel(member.id, levelCode, reason))}
-          className="chip bg-teal px-4 text-xs font-semibold text-white"
+          onClick={() => run("level", () => adminSetLevel(member.id, levelCode, reason))}
+          className={primaryBtn}
         >
-          등급 적용
+          {label("level", "등급 적용")}
         </button>
 
         {member.manual_override && (
           <button
             type="button"
             disabled={pending}
-            onClick={() => run(() => adminClearManualOverride(member.id))}
-            className="chip border border-line px-4 text-xs font-semibold text-ink"
+            onClick={() => run("clearOverride", () => adminClearManualOverride(member.id))}
+            className={secondaryBtn}
           >
-            수동조정 해제 (자동 판정으로 복귀)
+            {label("clearOverride", "수동조정 해제 (자동 판정으로 복귀)")}
           </button>
         )}
 
@@ -346,10 +377,10 @@ function BasicInfoTab({
           <button
             type="button"
             disabled={pending}
-            onClick={() => run(() => adminReleaseCooldown(member.id))}
-            className="chip border border-line px-4 text-xs font-semibold text-ink"
+            onClick={() => run("releaseCooldown", () => adminReleaseCooldown(member.id))}
+            className={secondaryBtn}
           >
-            복귀 유예 조기 해제
+            {label("releaseCooldown", "복귀 유예 조기 해제")}
           </button>
         )}
       </div>
@@ -366,14 +397,26 @@ function BasicInfoTab({
           <button
             type="button"
             disabled={pending}
-            onClick={() =>
-              run(() => adminSetExpiry(member.id, expiry ? new Date(expiry).toISOString() : null))
-            }
-            className="chip border border-line px-4 text-xs font-semibold text-ink"
+            onClick={() => {
+              if (!expiry) {
+                run("expiry", () => adminSetExpiry(member.id, null));
+                return;
+              }
+              const parsed = new Date(expiry);
+              if (Number.isNaN(parsed.getTime())) {
+                setError("유효한 날짜를 입력해 주세요.");
+                return;
+              }
+              run("expiry", () => adminSetExpiry(member.id, parsed.toISOString()));
+            }}
+            className={secondaryBtn}
           >
-            저장
+            {label("expiry", "저장")}
           </button>
         </div>
+        <p className="text-[11px] text-muted">
+          저장하면 수동 조정 상태가 되어 자동 판정이 이 날짜를 다시 바꾸지 않습니다.
+        </p>
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -385,34 +428,25 @@ function BasicInfoTab({
           <input
             type="text"
             value={newPassword}
-            onChange={(e) => {
-              setNewPassword(e.target.value);
-              setPasswordSaved(false);
-            }}
+            onChange={(e) => setNewPassword(e.target.value)}
             placeholder="새 비밀번호 (8자 이상)"
             className="input-field flex-1 px-3 text-sm"
           />
           <button
             type="button"
             disabled={pending || newPassword.length < 8}
-            onClick={() => {
-              setError(null);
-              startTransition(async () => {
+            onClick={() =>
+              run("password", async () => {
                 const result = await adminSetPassword(member.id, newPassword);
-                if (!result.ok) {
-                  setError(result.message ?? "처리에 실패했습니다.");
-                  return;
-                }
-                setNewPassword("");
-                setPasswordSaved(true);
-              });
-            }}
-            className="chip border border-line px-4 text-xs font-semibold text-ink disabled:opacity-50"
+                if (result.ok) setNewPassword("");
+                return result;
+              })
+            }
+            className={secondaryBtn}
           >
-            변경
+            {label("password", "변경")}
           </button>
         </div>
-        {passwordSaved && <p className="text-xs text-teal-deep">비밀번호가 변경되었습니다.</p>}
       </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}
@@ -647,10 +681,13 @@ function VideosTab({
 
 function ActivityTab({ detail, onChanged }: { detail: MemberDetail; onChanged: () => void }) {
   const [pending, startTransition] = useTransition();
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   function toggle(id: string, status: "active" | "hidden") {
+    setBusyId(id);
     startTransition(async () => {
       await adminToggleCommentVisibility(id, status);
+      setBusyId(null);
       onChanged();
     });
   }
@@ -673,9 +710,9 @@ function ActivityTab({ detail, onChanged }: { detail: MemberDetail; onChanged: (
                   type="button"
                   disabled={pending}
                   onClick={() => toggle(c.id, c.status === "active" ? "hidden" : "active")}
-                  className="chip shrink-0 border border-line px-3 text-[11px] font-semibold text-ink"
+                  className="chip shrink-0 border border-line px-3 text-[11px] font-semibold text-ink transition-colors duration-150 hover:bg-teal-soft hover:text-teal-deep active:scale-95 disabled:pointer-events-none disabled:opacity-50"
                 >
-                  {c.status === "active" ? "숨기기" : "복원"}
+                  {busyId === c.id ? "처리 중..." : c.status === "active" ? "숨기기" : "복원"}
                 </button>
               </li>
             ))}
@@ -699,9 +736,9 @@ function ActivityTab({ detail, onChanged }: { detail: MemberDetail; onChanged: (
                   type="button"
                   disabled={pending}
                   onClick={() => toggle(c.id, c.status === "active" ? "hidden" : "active")}
-                  className="chip shrink-0 border border-line px-3 text-[11px] font-semibold text-ink"
+                  className="chip shrink-0 border border-line px-3 text-[11px] font-semibold text-ink transition-colors duration-150 hover:bg-teal-soft hover:text-teal-deep active:scale-95 disabled:pointer-events-none disabled:opacity-50"
                 >
-                  {c.status === "active" ? "숨기기" : "복원"}
+                  {busyId === c.id ? "처리 중..." : c.status === "active" ? "숨기기" : "복원"}
                 </button>
               </li>
             ))}

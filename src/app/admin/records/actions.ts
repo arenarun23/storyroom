@@ -168,6 +168,10 @@ export async function adminSetLevel(memberId: string, toLevel: string, reason: s
     .eq("id", memberId)
     .single();
 
+  // manual_override를 먼저 켜 두어야, apply_level 실행 중/직후에 끼어드는 다른
+  // 자동 판정(영상 등록 트리거 등)이 수동 변경을 되돌리지 못한다.
+  await client.from("profiles").update({ manual_override: true }).eq("id", memberId);
+
   const { error } = await client.rpc("apply_level", {
     p_user: memberId,
     p_to_level: toLevel,
@@ -177,7 +181,6 @@ export async function adminSetLevel(memberId: string, toLevel: string, reason: s
   });
   if (error) return { ok: false, message: "등급 변경에 실패했습니다." };
 
-  await client.from("profiles").update({ manual_override: true }).eq("id", memberId);
   await client.from("audit_log").insert({
     admin_id: admin.id,
     action: "set_level",
@@ -221,17 +224,24 @@ export async function adminReleaseCooldown(memberId: string): Promise<ActionResu
   return { ok: true };
 }
 
+// 유지 만료일을 수동으로 입력하면 manual_override도 함께 켠다. 그렇지 않으면
+// 다음 영상 등록·야간 유지심사 때 자동 판정 로직(apply_promotion/
+// run_retention_check)이 이 값을 다시 계산해 덮어써 버려, 관리자가 입력한
+// 날짜가 "고정"되지 않고 곧 원래대로 되돌아가 버린다.
 export async function adminSetExpiry(memberId: string, expiresAt: string | null): Promise<ActionResult> {
   const admin = await requireAdmin();
   const client = createAdminClient();
 
   const { data: before } = await client
     .from("profiles")
-    .select("level_expires_at")
+    .select("level_expires_at, manual_override")
     .eq("id", memberId)
     .single();
 
-  const { error } = await client.from("profiles").update({ level_expires_at: expiresAt }).eq("id", memberId);
+  const { error } = await client
+    .from("profiles")
+    .update({ level_expires_at: expiresAt, manual_override: true })
+    .eq("id", memberId);
   if (error) return { ok: false, message: "처리에 실패했습니다." };
 
   await client.from("audit_log").insert({
@@ -240,7 +250,7 @@ export async function adminSetExpiry(memberId: string, expiresAt: string | null)
     target_table: "profiles",
     target_id: memberId,
     before,
-    after: { level_expires_at: expiresAt },
+    after: { level_expires_at: expiresAt, manual_override: true },
   });
 
   revalidatePath("/admin/records");

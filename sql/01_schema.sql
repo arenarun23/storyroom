@@ -437,6 +437,7 @@ create function apply_level(
 language plpgsql security definer set search_path = public as $$
 declare
   cur_level text;
+  cur_expires timestamptz;
   cur_order integer;
   to_order integer;
   to_has_retention boolean;
@@ -446,8 +447,14 @@ declare
   new_lock timestamptz;
   metrics jsonb;
 begin
-  select current_level into cur_level from profiles where id = p_user for update;
-  if cur_level is null or cur_level = p_to_level then
+  -- p_change_type = 'manual'(관리자 강제 변경)이면 현재 등급과 같은 값을
+  -- 요청해도 그대로 재적용한다(이력·수정시각 갱신). 자동 판정 경로에서는
+  -- 같은 등급으로의 재적용을 호출하지 않으므로 이 완화는 수동 변경에만 영향을 준다.
+  select current_level, level_expires_at into cur_level, cur_expires from profiles where id = p_user for update;
+  if cur_level is null then
+    return;
+  end if;
+  if cur_level = p_to_level and p_change_type <> 'manual' then
     return;
   end if;
 
@@ -457,7 +464,14 @@ begin
 
   cooldown_months := coalesce(cfg_int('promotion_cooldown_months'), 1);
 
-  new_expires := case when to_has_retention then retention_expiry_date() else null end;
+  -- 실제로 등급이 바뀔 때만 유지 만료일을 새로 계산한다. 등급이 그대로인
+  -- 강제 재적용(같은 등급으로의 수동 조정)에서는 기존 만료일을 그대로
+  -- 둔다 — 그래야 관리자가 유지 만료일을 수동으로 지정해 둔 값이
+  -- 등급 재적용 때문에 되돌아가지 않는다.
+  new_expires := case
+    when to_order is distinct from cur_order then (case when to_has_retention then retention_expiry_date() else null end)
+    else cur_expires
+  end;
   new_lock := case when to_order < cur_order then now() + (cooldown_months || ' months')::interval else null end;
 
   perform set_config('app.internal_write', 'on', true);
@@ -474,13 +488,15 @@ begin
   insert into level_history (user_id, from_level, to_level, level_name_snapshot, change_type, reason, actor_id, metrics_snapshot)
   values (p_user, cur_level, p_to_level, to_name, p_change_type, p_reason, p_actor, metrics);
 
-  insert into notifications (user_id, type, title, body)
-  values (
-    p_user,
-    case when to_order > cur_order then 'promotion' else 'demotion' end,
-    case when to_order > cur_order then to_name || ' 등급으로 승급했습니다' else to_name || ' 등급으로 하락했습니다' end,
-    case when new_lock is not null then '복귀 심사는 ' || to_char(new_lock, 'YYYY-MM-DD') || '부터 진행됩니다.' else null end
-  );
+  if to_order is distinct from cur_order then
+    insert into notifications (user_id, type, title, body)
+    values (
+      p_user,
+      case when to_order > cur_order then 'promotion' else 'demotion' end,
+      case when to_order > cur_order then to_name || ' 등급으로 승급했습니다' else to_name || ' 등급으로 하락했습니다' end,
+      case when new_lock is not null then '복귀 심사는 ' || to_char(new_lock, 'YYYY-MM-DD') || '부터 진행됩니다.' else null end
+    );
+  end if;
 end;
 $$;
 

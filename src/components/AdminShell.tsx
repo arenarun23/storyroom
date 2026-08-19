@@ -34,14 +34,17 @@ export default function AdminShell({ email, children }: AdminShellProps) {
   return (
     <div className="flex min-h-full flex-1 bg-paper">
       <aside className="hidden w-56 shrink-0 flex-col gap-1 border-r border-line bg-card p-4 md:flex">
-        <Link href="/" className="font-title mb-4 block px-2 text-sm font-bold text-teal-deep">
+        <Link
+          href="/"
+          className="font-title mb-4 block rounded-[10px] px-2 py-1 text-sm font-bold text-teal-deep transition-colors duration-150 hover:bg-teal-soft/50"
+        >
           STORYROOM EDU CERTIFICATION 관리자
         </Link>
         {NAV_ITEMS.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className={`rounded-[10px] px-3 py-2 text-sm font-medium ${
+            className={`rounded-[10px] px-3 py-2 text-sm font-medium transition-colors duration-150 ${
               pathname === item.href ? "bg-teal-soft text-teal-deep" : "text-ink hover:bg-teal-soft/50"
             }`}
           >
@@ -57,8 +60,8 @@ export default function AdminShell({ email, children }: AdminShellProps) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`shrink-0 rounded-[10px] px-3 py-1.5 text-xs font-medium ${
-                  pathname === item.href ? "bg-teal-soft text-teal-deep" : "text-ink"
+                className={`shrink-0 rounded-[10px] px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
+                  pathname === item.href ? "bg-teal-soft text-teal-deep" : "text-ink hover:bg-teal-soft/50"
                 }`}
               >
                 {item.label}
