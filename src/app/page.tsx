@@ -94,12 +94,24 @@ export default async function LandingPage() {
         </Link>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-6">
-          {badgeLevels.map((level) => (
-            <div key={level.code} className="flex flex-col items-center gap-2">
-              <LevelBadge level={level} size="88px" showCaption={false} />
-              <span className="font-nanum text-xs font-bold text-muted">{level.name}</span>
-            </div>
-          ))}
+          {badgeLevels.map((level) => {
+            const [, badgeColor] = (level.badge_color ?? "#8B9B98,#677876").split(",");
+            return (
+              <div key={level.code} className="flex flex-col items-center gap-2">
+                <LevelBadge level={level} size="101px" showCaption={false} />
+                <span
+                  className="font-nanum text-[15px] font-bold"
+                  style={{
+                    color: badgeColor,
+                    WebkitTextStroke: "0.6px white",
+                    paintOrder: "stroke fill",
+                  }}
+                >
+                  {level.name}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </section>
 
