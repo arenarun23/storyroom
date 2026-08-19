@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import NotificationBell from "@/components/NotificationBell";
@@ -8,6 +9,7 @@ import NotificationBell from "@/components/NotificationBell";
 interface AppShellProps {
   displayName: string | null;
   avatarUrl: string | null;
+  email: string;
   isAdmin?: boolean;
   children: React.ReactNode;
 }
@@ -21,10 +23,23 @@ const BASE_NAV_ITEMS = [
 const ADMIN_NAV_ITEM = { href: "/admin", label: "관리자 페이지" };
 
 // §4.8 반응형 네비게이션: 모바일 하단 고정 탭바 / PC 상단 네비.
-export default function AppShell({ displayName, avatarUrl, isAdmin = false, children }: AppShellProps) {
+export default function AppShell({ displayName, avatarUrl, email, isAdmin = false, children }: AppShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const navItems = isAdmin ? [...BASE_NAV_ITEMS, ADMIN_NAV_ITEM] : BASE_NAV_ITEMS;
+  const [showAccountPopup, setShowAccountPopup] = useState(false);
+  const accountRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!showAccountPopup) return;
+    function handleOutsideClick(e: MouseEvent) {
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) {
+        setShowAccountPopup(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [showAccountPopup]);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -56,16 +71,31 @@ export default function AppShell({ displayName, avatarUrl, isAdmin = false, chil
 
         <div className="flex items-center gap-3">
           <NotificationBell />
-          <Link href="/me" title="내 정보" aria-label="내 정보">
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt="" className="h-8 w-8 rounded-full" />
-            ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-soft text-xs font-bold text-teal-deep">
-                {displayName?.[0] ?? "T"}
+          <div ref={accountRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setShowAccountPopup((v) => !v)}
+              title="계정 정보"
+              aria-label="계정 정보"
+              className="block rounded-full transition-opacity duration-150 hover:opacity-80 active:scale-95"
+            >
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatarUrl} alt="" className="h-8 w-8 rounded-full" />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-soft text-xs font-bold text-teal-deep">
+                  {displayName?.[0] ?? "T"}
+                </div>
+              )}
+            </button>
+
+            {showAccountPopup && (
+              <div className="absolute right-0 z-20 mt-2 w-max max-w-[240px] rounded-[10px] border border-line bg-card p-3 text-right shadow-[var(--shadow-s2)]">
+                <p className="text-sm font-semibold text-ink">{displayName ?? "선생님"}</p>
+                <p className="text-xs text-muted">{email}</p>
               </div>
             )}
-          </Link>
+          </div>
           <button
             type="button"
             onClick={handleLogout}

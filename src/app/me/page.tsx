@@ -98,7 +98,12 @@ export default async function MePage() {
     !!profile.level_expires_at && isWithinWarningWindow(profile.level_expires_at, warnDays);
 
   return (
-    <AppShell displayName={profile.display_name} avatarUrl={profile.avatar_url} isAdmin={isAdminRole(profile.role)}>
+    <AppShell
+      displayName={profile.display_name}
+      avatarUrl={profile.avatar_url}
+      email={profile.email}
+      isAdmin={isAdminRole(profile.role)}
+    >
       <div className="flex flex-col gap-6">
         <h1 className="font-title text-xl font-bold text-ink">
           {profile.display_name ?? "선생님"}님, 반갑습니다

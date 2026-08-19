@@ -23,6 +23,7 @@ export default async function WithdrawPage() {
     <AppShell
       displayName={profile?.display_name ?? null}
       avatarUrl={profile?.avatar_url ?? null}
+      email={user.email ?? ""}
       isAdmin={isAdminRole(profile?.role)}
     >
       <WithdrawForm email={user.email ?? ""} />

@@ -54,6 +54,7 @@ export default async function VideoDetailPage(props: PageProps<"/videos/[id]">) 
     <AppShell
       displayName={profile?.display_name ?? null}
       avatarUrl={profile?.avatar_url ?? null}
+      email={user.email ?? ""}
       isAdmin={isAdminRole(profile?.role)}
     >
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">

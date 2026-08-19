@@ -38,6 +38,7 @@ export default async function LevelsPage() {
     <AppShell
       displayName={profile?.display_name ?? null}
       avatarUrl={profile?.avatar_url ?? null}
+      email={user.email ?? ""}
       isAdmin={isAdminRole(profile?.role)}
     >
       <div className="flex flex-col gap-8">
