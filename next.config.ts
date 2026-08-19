@@ -40,6 +40,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // x-powered-by: Next.js 헤더 노출 제거(정보 노출 최소화)
+  poweredByHeader: false,
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
