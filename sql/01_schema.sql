@@ -1199,8 +1199,8 @@ insert into app_config (key, value, description) values
   ('ai_monthly_limit', '500', 'AI 코멘트 월 상한');
 
 insert into levels (code, order_no, name, badge_color, badge_image_url, has_retention) values
-  ('L0', 0, 'Starter', '#C3CFCD,#8B9B98', '/badges/starter.png', false),
-  ('L1', 1, 'Beginner', '#6BD3C4,#2A9187', '/badges/beginner.png', true),
+  ('L0', 0, 'Starter', '#6BD3C4,#2A9187', '/badges/starter.png', false),
+  ('L1', 1, 'Beginner', '#C3CFCD,#8B9B98', '/badges/beginner.png', true),
   ('L2', 2, 'Creator', '#1CC0AE,#0A6B62', '/badges/creator.png', true),
   ('L3', 3, 'Master', '#F0D588,#A97615', '/badges/master.png', true);
 

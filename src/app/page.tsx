@@ -11,7 +11,7 @@ const FALLBACK_LEVELS: Pick<
     code: "L0",
     order_no: 0,
     name: "Starter",
-    badge_color: "#C3CFCD,#8B9B98",
+    badge_color: "#6BD3C4,#2A9187",
     badge_image_url: "/badges/starter.png",
     description: "스토리룸 교사 인증에 가입하면 바로 적용되는 레벨입니다. 등급 기준을 충족하면 비기너가 될 수 있습니다.",
   },
@@ -19,7 +19,7 @@ const FALLBACK_LEVELS: Pick<
     code: "L1",
     order_no: 1,
     name: "Beginner",
-    badge_color: "#6BD3C4,#2A9187",
+    badge_color: "#C3CFCD,#8B9B98",
     badge_image_url: "/badges/beginner.png",
     description:
       "축하합니다. 스토리룸 비기너가 되셨군요. 멋진 영상 제작을 위한 첫 발걸음을 떼셨습니다. 등급 기준을 충족하면 크리에이터가 될 수 있습니다.",
