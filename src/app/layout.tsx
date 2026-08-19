@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Noto_Serif_KR, IBM_Plex_Mono } from "next/font/google";
+import { Noto_Serif_KR, IBM_Plex_Mono, Nanum_Gothic } from "next/font/google";
 import "./globals.css";
 
 const notoSerifKr = Noto_Serif_KR({
@@ -16,6 +16,13 @@ const ibmPlexMono = IBM_Plex_Mono({
   preload: false,
 });
 
+const nanumGothic = Nanum_Gothic({
+  weight: ["700", "800"],
+  subsets: ["latin"],
+  variable: "--font-nanum-gothic",
+  preload: false,
+});
+
 export const metadata: Metadata = {
   title: "STORYROOM EDU CERTIFICATION",
   description: "오늘 만든 한 편이 내일의 레벨이 됩니다",
@@ -25,7 +32,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ko"
-      className={`${notoSerifKr.variable} ${ibmPlexMono.variable} h-full antialiased`}
+      className={`${notoSerifKr.variable} ${ibmPlexMono.variable} ${nanumGothic.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

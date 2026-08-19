@@ -97,7 +97,7 @@ export default async function LandingPage() {
           {badgeLevels.map((level) => (
             <div key={level.code} className="flex flex-col items-center gap-2">
               <LevelBadge level={level} size="88px" showCaption={false} />
-              <span className="font-mono text-xs text-muted">{level.name}</span>
+              <span className="font-nanum text-xs font-bold text-muted">{level.name}</span>
             </div>
           ))}
         </div>
