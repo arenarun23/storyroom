@@ -46,7 +46,9 @@ export default function MemberDetailDrawer({
   const loading = detail === null;
   const router = useRouter();
   // 로그인 기록은 최고관리자만 볼 수 있다
-  const visibleTabs = TABS.filter((t) => t !== "로그인 기록" || viewerRole === "super_admin");
+  // 로그인 기록·활동 탭은 최고관리자만 볼 수 있다
+  const SUPER_ADMIN_ONLY_TABS: Tab[] = ["로그인 기록", "활동"];
+  const visibleTabs = TABS.filter((t) => !SUPER_ADMIN_ONLY_TABS.includes(t) || viewerRole === "super_admin");
 
   useEffect(() => {
     let cancelled = false;

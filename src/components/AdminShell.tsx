@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { SUPER_ADMIN_EMAIL } from "@/lib/roles";
 
 interface AdminShellProps {
   email: string;
@@ -20,9 +21,12 @@ const NAV_ITEMS = [
   { href: "/admin/audit", label: "감사로그" },
 ];
 
+const ACTIVITY_NAV_ITEM = { href: "/admin/activity", label: "회원 활동" };
+
 export default function AdminShell({ email, children }: AdminShellProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const navItems = email === SUPER_ADMIN_EMAIL ? [...NAV_ITEMS, ACTIVITY_NAV_ITEM] : NAV_ITEMS;
 
   async function handleLogout() {
     const supabase = createClient();
@@ -40,7 +44,7 @@ export default function AdminShell({ email, children }: AdminShellProps) {
         >
           STORYROOM EDU CERTIFICATION 관리자
         </Link>
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -56,7 +60,7 @@ export default function AdminShell({ email, children }: AdminShellProps) {
       <div className="flex flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-line bg-card px-4 py-3 md:px-8">
           <nav className="flex gap-1 overflow-x-auto md:hidden">
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
