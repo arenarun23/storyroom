@@ -13,12 +13,22 @@ const HEX_VERTICES: [number, number][] = [
 ];
 
 interface LevelBadgeProps {
-  level: Pick<Level, "code" | "order_no" | "name" | "badge_color" | "badge_image_url">;
+  level: Pick<Level, "code" | "order_no" | "name" | "badge_color" | "badge_image_url" | "description">;
   /** 0~1. 지정하면 다음 등급까지의 진행률 링을 표시한다 */
   progress?: number;
   /** CSS 길이. 기본값은 §4.3 반응형 규격 clamp(140px, 20vw, 220px) */
   size?: string;
   showCaption?: boolean;
+}
+
+// 마우스를 배지에 올리면 등급 설명을 팝업으로 보여준다. 설명이 없으면 표시하지 않는다.
+function DescriptionTooltip({ description }: { description: string | null | undefined }) {
+  if (!description) return null;
+  return (
+    <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[240px] -translate-x-1/2 rounded-[10px] border border-line bg-ink px-3 py-2 text-center text-xs text-white opacity-0 shadow-[var(--shadow-s2)] transition-opacity duration-150 group-hover:opacity-100">
+      {description}
+    </div>
+  );
 }
 
 // §5.3 등급 뱃지 규격: 육각 플레이트 + 그라디언트, 흰색 반투명 내부 테두리,
@@ -42,8 +52,9 @@ export default function LevelBadge({
         role="img"
         aria-label={`${level.name} 등급 뱃지`}
         style={{ width: size, height: size, filter: "drop-shadow(0 4px 6px rgba(12,29,27,.26))" }}
-        className="relative shrink-0"
+        className="group relative shrink-0"
       >
+        <DescriptionTooltip description={level.description} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={level.badge_image_url} alt="" className="h-full w-full object-contain" />
         {progress != null && (
@@ -71,8 +82,9 @@ export default function LevelBadge({
       role="img"
       aria-label={`${level.name} 등급 뱃지`}
       style={{ width: size, height: size, filter: "drop-shadow(0 4px 6px rgba(12,29,27,.26))" }}
-      className="relative shrink-0"
+      className="group relative shrink-0"
     >
+      <DescriptionTooltip description={level.description} />
       <svg viewBox="0 0 200 200" className="h-full w-full">
         <defs>
           <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">

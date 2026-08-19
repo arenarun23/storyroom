@@ -75,7 +75,11 @@ function LevelCard({ level, onSaved }: { level: Level; onSaved: () => void }) {
 
   return (
     <div className="card flex flex-col gap-4 p-6 sm:flex-row">
-      <LevelBadge level={{ ...level, name, badge_color: `${colorFrom},${colorTo}` }} size="88px" showCaption={false} />
+      <LevelBadge
+        level={{ ...level, name, description, badge_color: `${colorFrom},${colorTo}` }}
+        size="88px"
+        showCaption={false}
+      />
 
       <div className="flex flex-1 flex-col gap-3">
         <div className="grid grid-cols-2 gap-3">

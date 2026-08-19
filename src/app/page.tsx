@@ -3,11 +3,43 @@ import { createClient } from "@/lib/supabase/server";
 import LevelBadge from "@/components/LevelBadge";
 import type { Level } from "@/lib/types";
 
-const FALLBACK_LEVELS: Pick<Level, "code" | "order_no" | "name" | "badge_color" | "badge_image_url">[] = [
-  { code: "L0", order_no: 0, name: "Starter", badge_color: "#C3CFCD,#8B9B98", badge_image_url: "/badges/starter.png" },
-  { code: "L1", order_no: 1, name: "Beginner", badge_color: "#6BD3C4,#2A9187", badge_image_url: "/badges/beginner.png" },
-  { code: "L2", order_no: 2, name: "Creator", badge_color: "#1CC0AE,#0A6B62", badge_image_url: "/badges/creator.png" },
-  { code: "L3", order_no: 3, name: "Master", badge_color: "#F0D588,#A97615", badge_image_url: "/badges/master.png" },
+const FALLBACK_LEVELS: Pick<
+  Level,
+  "code" | "order_no" | "name" | "badge_color" | "badge_image_url" | "description"
+>[] = [
+  {
+    code: "L0",
+    order_no: 0,
+    name: "Starter",
+    badge_color: "#C3CFCD,#8B9B98",
+    badge_image_url: "/badges/starter.png",
+    description: "스토리룸 교사 인증에 가입하면 바로 적용되는 레벨입니다. 등급 기준을 충족하면 비기너가 될 수 있습니다.",
+  },
+  {
+    code: "L1",
+    order_no: 1,
+    name: "Beginner",
+    badge_color: "#6BD3C4,#2A9187",
+    badge_image_url: "/badges/beginner.png",
+    description:
+      "축하합니다. 스토리룸 비기너가 되셨군요. 멋진 영상 제작을 위한 첫 발걸음을 떼셨습니다. 등급 기준을 충족하면 크리에이터가 될 수 있습니다.",
+  },
+  {
+    code: "L2",
+    order_no: 2,
+    name: "Creator",
+    badge_color: "#1CC0AE,#0A6B62",
+    badge_image_url: "/badges/creator.png",
+    description: "영상 제작을 위한 위대한 여정에 함께 하신 것을 환영합니다. 멋진 교육용 영상을 만들어 주세요.",
+  },
+  {
+    code: "L3",
+    order_no: 3,
+    name: "Master",
+    badge_color: "#F0D588,#A97615",
+    badge_image_url: "/badges/master.png",
+    description: "영상 제작의 끝을 보셨군요. 이제 하산하셔도 되겠습니다.",
+  },
 ];
 
 const STEPS = [
@@ -20,7 +52,10 @@ export default async function LandingPage() {
   const supabase = await createClient();
 
   const [{ data: levels }, { data: stats }] = await Promise.all([
-    supabase.from("levels").select("code, order_no, name, badge_color, badge_image_url").order("order_no"),
+    supabase
+      .from("levels")
+      .select("code, order_no, name, badge_color, badge_image_url, description")
+      .order("order_no"),
     supabase.rpc("public_stats").single(),
   ]);
 
