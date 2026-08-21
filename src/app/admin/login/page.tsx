@@ -19,27 +19,37 @@ export default function AdminLoginPage() {
     setError(null);
     setLoading(true);
 
-    const supabase = createClient();
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      const supabase = createClient();
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (signInError || !data.user) {
-      setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+      if (signInError || !data.user) {
+        setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+        return;
+      }
+
+      const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
+
+      if (!isAdminRole(profile?.role)) {
+        await supabase.auth.signOut();
+        setError("관리자 계정이 아닙니다.");
+        return;
+      }
+
+      // 로그인 기록 저장은 실패해도 로그인 자체는 막지 않는다.
+      try {
+        await recordAdminLogin();
+      } catch {
+        // 로그인 기록 실패는 무시하고 계속 진행한다.
+      }
+
+      router.push("/admin");
+      router.refresh();
+    } catch {
+      setError("로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
-
-    if (!isAdminRole(profile?.role)) {
-      await supabase.auth.signOut();
-      setError("관리자 계정이 아닙니다.");
-      setLoading(false);
-      return;
-    }
-
-    await recordAdminLogin();
-    router.push("/admin");
-    router.refresh();
   }
 
   return (
