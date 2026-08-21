@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import LevelBadge from "@/components/LevelBadge";
+import LandingAuthHeader from "@/app/LandingAuthHeader";
 import type { Level } from "@/lib/types";
 
 const FALLBACK_LEVELS: Pick<
@@ -51,12 +52,19 @@ const STEPS = [
 export default async function LandingPage() {
   const supabase = await createClient();
 
-  const [{ data: levels }, { data: stats }] = await Promise.all([
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [{ data: levels }, { data: stats }, { data: profile }] = await Promise.all([
     supabase
       .from("levels")
       .select("code, order_no, name, badge_color, badge_image_url, description")
       .order("order_no"),
     supabase.rpc("public_stats").single(),
+    user
+      ? supabase.from("profiles").select("display_name").eq("id", user.id).single()
+      : Promise.resolve({ data: null }),
   ]);
 
   const badgeLevels = levels && levels.length > 0 ? levels : FALLBACK_LEVELS;
@@ -68,12 +76,16 @@ export default async function LandingPage() {
     <div className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col">
       <header className="flex items-center justify-between px-6 py-5 sm:px-10">
         <span className="font-title text-lg font-bold text-teal-deep">STORYROOM EDU CERTIFICATION</span>
-        <Link
-          href="/login"
-          className="btn flex items-center rounded-[10px] bg-teal px-5 text-sm font-semibold text-white"
-        >
-          시작하기
-        </Link>
+        {user ? (
+          <LandingAuthHeader displayName={profile?.display_name ?? null} />
+        ) : (
+          <Link
+            href="/login"
+            className="btn flex items-center rounded-[10px] bg-teal px-5 text-sm font-semibold text-white"
+          >
+            시작하기
+          </Link>
+        )}
       </header>
 
       <section className="flex flex-col items-center gap-8 px-6 py-16 text-center sm:px-10">
