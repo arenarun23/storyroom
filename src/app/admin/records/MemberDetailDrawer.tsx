@@ -26,6 +26,15 @@ import type { AdminMemberRow, Level, Role } from "@/lib/types";
 const TABS = ["기본 정보", "지표", "영상", "활동", "등급 이력", "로그인 기록", "AI 코멘트"] as const;
 type Tab = (typeof TABS)[number];
 
+const VIDEO_STATUS_LABELS: Record<string, string> = {
+  active: "활성",
+  pending: "승인 대기",
+  rejected: "거절",
+  deleted: "삭제됨",
+  withdrawn: "탈퇴 회원",
+  reset: "초기화됨",
+};
+
 interface MemberDetailDrawerProps {
   member: AdminMemberRow;
   levels: Level[];
@@ -555,7 +564,7 @@ function VideosTab({
   const [reassignForId, setReassignForId] = useState<string | null>(null);
   const [reassignTarget, setReassignTarget] = useState("");
 
-  function handleSetStatus(videoId: string, status: "active" | "deleted") {
+  function handleSetStatus(videoId: string, status: "active" | "deleted" | "rejected") {
     setBusyId(videoId);
     adminSetVideoStatus(videoId, status).finally(() => {
       setBusyId(null);
@@ -600,7 +609,17 @@ function VideosTab({
               <span className="chip bg-teal-soft px-2 text-[11px] font-semibold text-teal-deep">
                 {v.platform === "youtube" ? "YouTube" : "스토리룸"}
               </span>
-              <span className="chip border border-line px-2 text-[11px]">{v.status}</span>
+              <span
+                className={`chip border px-2 text-[11px] font-semibold ${
+                  v.status === "rejected"
+                    ? "border-danger/40 bg-danger/10 text-danger"
+                    : v.status === "pending"
+                      ? "border-gold/40 bg-gold-soft text-gold"
+                      : "border-line text-muted"
+                }`}
+              >
+                {VIDEO_STATUS_LABELS[v.status] ?? v.status}
+              </span>
               {v.is_flagged && <OutlierBadge />}
               <span className="font-mono text-xs text-muted">{formatDuration(v.duration_sec)}</span>
             </div>
@@ -616,6 +635,41 @@ function VideosTab({
                   >
                     {busy ? "처리 중..." : "삭제"}
                   </button>
+                ) : v.status === "pending" ? (
+                  <>
+                    <button
+                      type="button"
+                      disabled={busyId !== null}
+                      onClick={() => handleSetStatus(v.id, "active")}
+                      className="chip border border-line px-3 text-[11px] font-semibold text-teal-deep transition-colors duration-150 hover:bg-teal-soft active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+                    >
+                      {busy ? "처리 중..." : "승인"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busyId !== null}
+                      onClick={() => handleSetStatus(v.id, "rejected")}
+                      className="chip border border-line px-3 text-[11px] font-semibold text-danger transition-colors duration-150 hover:bg-danger hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+                    >
+                      {busy ? "처리 중..." : "거절"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busyId !== null}
+                      onClick={() =>
+                        reassignForId === v.id
+                          ? setReassignForId(null)
+                          : (setReassignForId(v.id), setReassignTarget(""))
+                      }
+                      className={`chip border px-3 text-[11px] font-semibold transition-colors duration-150 active:scale-95 disabled:pointer-events-none disabled:opacity-50 ${
+                        reassignForId === v.id
+                          ? "border-gold bg-gold-soft text-gold"
+                          : "border-line text-muted hover:text-ink"
+                      }`}
+                    >
+                      다른 계정으로 승인(초기화)
+                    </button>
+                  </>
                 ) : (
                   (v.status === "deleted" || v.status === "rejected") && (
                     <>

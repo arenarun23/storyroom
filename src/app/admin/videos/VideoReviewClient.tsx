@@ -19,7 +19,7 @@ export interface AdminVideoRow {
   title: string | null;
   url: string | null;
   duration_sec: number;
-  status: "active" | "rejected" | "deleted" | "withdrawn" | "reset";
+  status: "active" | "pending" | "rejected" | "deleted" | "withdrawn" | "reset";
   is_flagged: boolean;
   created_at: string;
   owner: { display_name: string | null; email: string } | null;
@@ -34,6 +34,7 @@ export interface AdminMemberOption {
 
 const STATUS_LABELS: Record<AdminVideoRow["status"], string> = {
   active: "활성",
+  pending: "승인 대기",
   rejected: "거절",
   deleted: "삭제됨",
   withdrawn: "탈퇴 회원",
@@ -42,6 +43,7 @@ const STATUS_LABELS: Record<AdminVideoRow["status"], string> = {
 
 const STATUS_FILTERS: { value: "" | AdminVideoRow["status"]; label: string }[] = [
   { value: "", label: "전체" },
+  { value: "pending", label: "승인 대기" },
   { value: "active", label: "활성" },
   { value: "deleted", label: "삭제됨" },
   { value: "withdrawn", label: "탈퇴 회원" },
@@ -75,7 +77,7 @@ export default function VideoReviewClient({
     return true;
   });
 
-  function handleSetStatus(videoId: string, status: "active" | "deleted") {
+  function handleSetStatus(videoId: string, status: "active" | "deleted" | "rejected") {
     setBusyId(videoId);
     adminSetVideoStatus(videoId, status).finally(() => {
       setBusyId(null);
@@ -179,7 +181,7 @@ function VideoCard({
   reassignTarget: string;
   onToggleReassign: () => void;
   onReassignTargetChange: (v: string) => void;
-  onSetStatus: (status: "active" | "deleted") => void;
+  onSetStatus: (status: "active" | "deleted" | "rejected") => void;
   onReassign: () => void;
   onResetOnly: () => void;
 }) {
@@ -233,7 +235,11 @@ function VideoCard({
         </span>
         <span
           className={`chip border px-2 text-[11px] font-semibold ${
-            v.status === "rejected" ? "border-danger/40 bg-danger/10 text-danger" : "border-line text-muted"
+            v.status === "rejected"
+              ? "border-danger/40 bg-danger/10 text-danger"
+              : v.status === "pending"
+                ? "border-gold/40 bg-gold-soft text-gold"
+                : "border-line text-muted"
           }`}
         >
           {STATUS_LABELS[v.status]}
@@ -347,6 +353,35 @@ function VideoCard({
             >
               {busy ? "처리 중..." : "삭제"}
             </button>
+          ) : v.status === "pending" ? (
+            <>
+              <button
+                type="button"
+                disabled={busyId !== null}
+                onClick={() => onSetStatus("active")}
+                className="chip border border-line px-3 text-[11px] font-semibold text-teal-deep transition-colors duration-150 hover:bg-teal-soft active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+              >
+                {busy ? "처리 중..." : "승인"}
+              </button>
+              <button
+                type="button"
+                disabled={busyId !== null}
+                onClick={() => onSetStatus("rejected")}
+                className="chip border border-line px-3 text-[11px] font-semibold text-danger transition-colors duration-150 hover:bg-danger hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+              >
+                {busy ? "처리 중..." : "거절"}
+              </button>
+              <button
+                type="button"
+                disabled={busyId !== null}
+                onClick={onToggleReassign}
+                className={`chip border px-3 text-[11px] font-semibold transition-colors duration-150 active:scale-95 disabled:pointer-events-none disabled:opacity-50 ${
+                  reassignOpen ? "border-gold bg-gold-soft text-gold" : "border-line text-muted hover:text-ink"
+                }`}
+              >
+                다른 계정으로 승인(초기화)
+              </button>
+            </>
           ) : (
             (v.status === "deleted" || v.status === "rejected") && (
               <>

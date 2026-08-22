@@ -444,7 +444,7 @@ export async function adminSetPassword(memberId: string, newPassword: string): P
 // 재검사를 건너뛰고 재승인이 그대로 적용된다.
 export async function adminSetVideoStatus(
   videoId: string,
-  status: "active" | "deleted",
+  status: "active" | "deleted" | "rejected",
 ): Promise<ActionResult> {
   const admin = await requireAdmin();
   const client = createAdminClient();
@@ -454,9 +454,10 @@ export async function adminSetVideoStatus(
   const { error } = await client.from("videos").update({ status }).eq("id", videoId);
   if (error) return { ok: false, message: "처리에 실패했습니다." };
 
+  const actionName = status === "active" ? "approve_video" : status === "rejected" ? "reject_video" : "delete_video";
   await client.from("audit_log").insert({
     admin_id: admin.id,
-    action: status === "active" ? "approve_video" : "delete_video",
+    action: actionName,
     target_table: "videos",
     target_id: videoId,
     before,

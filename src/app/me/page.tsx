@@ -47,13 +47,15 @@ export default async function MePage() {
         .from("videos")
         .select("*")
         .eq("owner_id", user.id)
-        .eq("status", "active")
+        .in("status", ["active", "pending", "rejected"])
         .order("created_at", { ascending: false })
         .returns<Video[]>(),
       supabase.from("app_config").select("value").eq("key", "retention_warning_days").single(),
     ]);
 
   if (!profile) redirect("/login");
+
+  const activeVideos = (videos ?? []).filter((v) => v.status === "active");
 
   const currentLevel = levels?.find((l) => l.code === profile.current_level);
   const nextLevel = levels?.find((l) => l.order_no === (currentLevel?.order_no ?? 0) + 1 && l.is_active);
@@ -196,7 +198,7 @@ export default async function MePage() {
 
         <VideoManager videos={videos ?? []} disabled={isPending} />
 
-        {videos && videos.length > 0 && <MonthlyChart videos={videos} />}
+        {activeVideos.length > 0 && <MonthlyChart videos={activeVideos} />}
 
         {currentLevel?.benefits && (
           <section className="card p-6">

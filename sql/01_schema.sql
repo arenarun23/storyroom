@@ -143,7 +143,7 @@ create table videos (
   yt_comments     bigint not null default 0,
   yt_synced_at    timestamptz,
   is_flagged      boolean not null default false,
-  status          text not null default 'active' check (status in ('active','rejected','deleted','withdrawn','reset')),
+  status          text not null default 'active' check (status in ('active','pending','rejected','deleted','withdrawn','reset')),
   reassigned_to_id uuid references profiles(id) on delete set null,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
@@ -847,7 +847,8 @@ for each row execute function trg_block_self_like_fn();
 
 -- trg_validate_video: 시간 상한 검증, url_key 생성, 이상치 표시, 유튜브 소유권 대조
 -- (관리자가 service role로 영상을 재승인할 때는 소유권 재검사를 건너뛴다 —
--- 유튜브 채널 인증 기능이 아직 없어 일반 등록 경로로는 통과할 수 없기 때문)
+-- 유튜브 채널 인증 기능이 아직 없어 일반 등록 경로로는 통과할 수 없고,
+-- 대신 승인 대기(pending) 상태로 관리자 수동 검토를 거친다)
 create function trg_validate_video_fn() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare
@@ -878,7 +879,7 @@ begin
       select 1 from profiles
       where id = new.owner_id and yt_channel_id = new.yt_channel_id and yt_verified_at is not null
     ) then
-      new.status := 'rejected'; -- FR-504
+      new.status := 'pending'; -- 채널 인증 전이면 관리자 검토 대기
     end if;
   end if;
 

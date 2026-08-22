@@ -10,6 +10,18 @@ import OutlierBadge from "@/components/OutlierBadge";
 const MAX_ROWS = 10;
 const DETECT_TIMEOUT_MS = 3000;
 
+const VIDEO_STATUS_LABEL: Partial<Record<Video["status"], string>> = {
+  active: "승인됨",
+  pending: "승인 대기",
+  rejected: "거절됨",
+};
+
+const VIDEO_STATUS_CLASS: Partial<Record<Video["status"], string>> = {
+  active: "border-teal/40 bg-teal-soft text-teal-deep",
+  pending: "border-gold/40 bg-gold-soft text-gold",
+  rejected: "border-danger/40 bg-danger/10 text-danger",
+};
+
 type RowStatus = "idle" | "detecting" | "auto" | "manual";
 
 interface InputRow {
@@ -345,6 +357,11 @@ function VideoRow({ video }: { video: Video }) {
           <div className="flex flex-wrap items-center gap-2">
             <span className="chip bg-teal-soft px-3 text-xs font-semibold text-teal-deep">
               {video.platform === "youtube" ? "YouTube" : "스토리룸"}
+            </span>
+            <span
+              className={`chip border px-3 text-xs font-semibold ${VIDEO_STATUS_CLASS[video.status] ?? "border-line text-muted"}`}
+            >
+              {VIDEO_STATUS_LABEL[video.status] ?? video.status}
             </span>
             {video.is_flagged && <OutlierBadge size="md" />}
             <span className="font-mono text-sm text-ink">{formatDuration(video.duration_sec)}</span>
