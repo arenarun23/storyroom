@@ -53,8 +53,13 @@ export default async function LevelsPage() {
       <div className="flex flex-col gap-8">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="font-title text-2xl font-bold text-ink">등급 안내</h1>
-            <p className="mt-1 text-sm text-muted">영상 활동이 쌓일수록 등급과 혜택도 함께 성장합니다.</p>
+            <h1
+              className="text-[26px] font-bold text-ink"
+              style={{ fontFamily: "var(--font-nanum-gothic), sans-serif", letterSpacing: "normal" }}
+            >
+              등급 안내
+            </h1>
+            <p className="mt-1 font-nanum text-base text-muted">영상 활동이 쌓일수록 등급과 혜택도 함께 성장합니다.</p>
           </div>
           <span className="chip shrink-0 bg-teal-soft px-3 text-[11px] font-semibold text-teal-deep">
             STORYROOM LEVEL
@@ -234,7 +239,7 @@ export default async function LevelsPage() {
                             <p className="mb-2 text-xs font-semibold" style={{ color: accentColor }}>
                               ★ {kName} 혜택
                             </p>
-                            <p className="text-sm text-ink">{level.benefits}</p>
+                            <p className="text-base font-bold text-ink">{level.benefits}</p>
                           </div>
                         )}
                       </div>

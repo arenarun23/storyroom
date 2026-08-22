@@ -19,7 +19,7 @@ export default async function AdminRulesPage() {
     supabase
       .from("app_config")
       .select("key, value, description")
-      .in("key", ["retention_period_mode", "retention_months"])
+      .in("key", ["retention_period_mode", "retention_months", "retention_manual_date"])
       .returns<AppConfigRow[]>(),
   ]);
 

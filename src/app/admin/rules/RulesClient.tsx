@@ -22,6 +22,7 @@ export default function RulesClient({ levels, rules, config }: RulesClientProps)
   const targetableLevels = levels.filter((l) => l.order_no > 0);
   const retentionMode = config.find((c) => c.key === "retention_period_mode")?.value ?? "yearly";
   const retentionMonths = config.find((c) => c.key === "retention_months")?.value ?? "6";
+  const retentionManualDate = config.find((c) => c.key === "retention_manual_date")?.value ?? "";
 
   return (
     <div className="flex flex-col gap-8">
@@ -30,6 +31,7 @@ export default function RulesClient({ levels, rules, config }: RulesClientProps)
       <RetentionExpirySection
         mode={retentionMode}
         months={retentionMonths}
+        manualDate={retentionManualDate}
         onChanged={() => router.refresh()}
       />
 
@@ -56,14 +58,17 @@ export default function RulesClient({ levels, rules, config }: RulesClientProps)
 function RetentionExpirySection({
   mode,
   months,
+  manualDate,
   onChanged,
 }: {
   mode: string;
   months: string;
+  manualDate: string;
   onChanged: () => void;
 }) {
   const [selectedMode, setSelectedMode] = useState(mode);
   const [selectedMonths, setSelectedMonths] = useState(months);
+  const [selectedDate, setSelectedDate] = useState(manualDate);
   const [pending, startTransition] = useTransition();
   const [toast, setToast] = useState<{ ok: boolean; message: string } | null>(null);
 
@@ -79,6 +84,17 @@ function RetentionExpirySection({
         const monthsResult = await adminUpdateConfig("retention_months", selectedMonths);
         if (!monthsResult.ok) {
           setToast({ ok: false, message: monthsResult.message ?? "저장에 실패했습니다." });
+          return;
+        }
+      }
+      if (selectedMode === "manual_date") {
+        if (!selectedDate) {
+          setToast({ ok: false, message: "날짜를 선택해 주세요." });
+          return;
+        }
+        const dateResult = await adminUpdateConfig("retention_manual_date", selectedDate);
+        if (!dateResult.ok) {
+          setToast({ ok: false, message: dateResult.message ?? "저장에 실패했습니다." });
           return;
         }
       }
@@ -103,8 +119,9 @@ function RetentionExpirySection({
             onChange={(e) => setSelectedMode(e.target.value)}
             className="input-field px-2 text-xs"
           >
-            <option value="yearly">매년 (그 해 12월 31일까지)</option>
-            <option value="manual">수동 (기간 선택)</option>
+            <option value="yearly">매년(해당연도 12월 31일)</option>
+            <option value="manual">수동(기간 선택)</option>
+            <option value="manual_date">수동(날짜 선택)</option>
           </select>
         </div>
 
@@ -121,11 +138,24 @@ function RetentionExpirySection({
           </div>
         )}
 
-        <div className="relative self-start">
+        {selectedMode === "manual_date" && (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-muted">만료일</label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="input-field px-2 text-xs"
+            />
+          </div>
+        )}
+
+        <div className="relative">
           <button
             type="button"
             disabled={pending}
             onClick={handleSave}
+            style={{ height: "48px" }}
             className="chip bg-teal px-4 text-xs font-semibold text-white transition-colors duration-150 hover:bg-teal-deep active:scale-95 disabled:pointer-events-none disabled:opacity-60"
           >
             {pending ? "저장 중..." : "저장"}

@@ -434,11 +434,17 @@ language plpgsql stable as $$
 declare
   mode text;
   months integer;
+  manual_date date;
 begin
   mode := coalesce(cfg_text('retention_period_mode'), 'yearly');
   if mode = 'manual' then
     months := coalesce(cfg_int('retention_months'), 6);
     return now() + (months || ' months')::interval;
+  elsif mode = 'manual_date' then
+    manual_date := nullif(cfg_text('retention_manual_date'), '')::date;
+    if manual_date is not null then
+      return (manual_date + time '23:59:59') at time zone 'Asia/Seoul';
+    end if;
   end if;
   return (make_date(extract(year from now())::int, 12, 31) + time '23:59:59') at time zone 'Asia/Seoul';
 end;
@@ -1204,8 +1210,9 @@ grant execute on function admin_activity_feed(integer, timestamptz, uuid) to aut
 insert into app_config (key, value, description) values
   ('site_name', '스토리룸 교사 그룹', '사이트 이름'),
   ('signup_approval_mode', 'auto', '가입 승인 모드 (auto|manual)'),
-  ('retention_period_mode', 'yearly', '유지 만료일 계산 방식 (yearly|manual)'),
+  ('retention_period_mode', 'yearly', '유지 만료일 계산 방식 (yearly|manual|manual_date)'),
   ('retention_months', '6', '유지기간(개월, retention_period_mode=manual일 때만 사용)'),
+  ('retention_manual_date', '', '고정 만료일 YYYY-MM-DD, retention_period_mode=manual_date일 때만 사용'),
   ('retention_warning_days', '30', '만료 경고 시작일'),
   ('promotion_cooldown_months', '1', '복귀 유예기간(개월)'),
   ('max_video_duration_min', '30', '영상 시간 상한(분)'),
