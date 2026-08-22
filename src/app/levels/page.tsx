@@ -89,7 +89,7 @@ export default async function LevelsPage() {
                     </span>
                     <div className="flex flex-col leading-tight">
                       <span className="text-sm font-bold text-ink">{level.name}</span>
-                      <span className="font-mono text-[11px] text-muted">
+                      <span className="text-[11px] text-muted" style={{ fontFamily: "var(--font-body)" }}>
                         {koreanLevelName(level.code, level.name)} · {summarizeStepper(promotionRules)}
                       </span>
                     </div>
