@@ -174,6 +174,7 @@ export default async function MePage() {
             {promotionRules.map((rule) => {
               const value = metricValue(rule.metric_key);
               const ratio = Math.min(value / rule.threshold, 1);
+              const isYoutube = rule.metric_key.startsWith("yt_");
               return (
                 <div key={rule.id} className="flex flex-col gap-1">
                   <div className="flex justify-between text-sm">
@@ -186,7 +187,7 @@ export default async function MePage() {
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-line">
                     <div
-                      className="h-full rounded-full bg-teal"
+                      className={`h-full rounded-full ${isYoutube ? "bg-youtube" : "bg-teal"}`}
                       style={{ width: `${ratio * 100}%` }}
                     />
                   </div>

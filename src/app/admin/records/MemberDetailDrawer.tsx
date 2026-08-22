@@ -606,7 +606,11 @@ function VideosTab({
             }`}
           >
             <div className="flex items-center gap-2">
-              <span className="chip bg-teal-soft px-2 text-[11px] font-semibold text-teal-deep">
+              <span
+                className={`chip px-2 text-[11px] font-semibold ${
+                  v.platform === "youtube" ? "bg-youtube-soft text-youtube" : "bg-teal-soft text-teal-deep"
+                }`}
+              >
                 {v.platform === "youtube" ? "YouTube" : "스토리룸"}
               </span>
               <span

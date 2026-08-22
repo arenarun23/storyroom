@@ -13,6 +13,8 @@
   --line: #dbe3e1;
   --muted: #677876;
   --danger: #ae4038;
+  --youtube: #ff0000;
+  --youtube-soft: #ffe5e5;
 
   /* §5.1 등급 그라디언트 */
   --level-l0-from: #c3cfcd;
@@ -49,6 +51,8 @@
   --color-line: var(--line);
   --color-muted: var(--muted);
   --color-danger: var(--danger);
+  --color-youtube: var(--youtube);
+  --color-youtube-soft: var(--youtube-soft);
 
   --font-sans: var(--font-body);
   --font-title: var(--font-noto-serif-kr);

@@ -355,7 +355,11 @@ function VideoRow({ video }: { video: Video }) {
       ) : (
         <div className="flex flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="chip bg-teal-soft px-3 text-xs font-semibold text-teal-deep">
+            <span
+              className={`chip px-3 text-xs font-semibold ${
+                video.platform === "youtube" ? "bg-youtube-soft text-youtube" : "bg-teal-soft text-teal-deep"
+              }`}
+            >
               {video.platform === "youtube" ? "YouTube" : "스토리룸"}
             </span>
             <span
