@@ -60,11 +60,11 @@ export function formatDuration(totalSec: number): string {
 export const METRIC_LABELS: Record<string, string> = {
   video_count: "스토리룸 영상 편수",
   total_duration_min: "누적 재생시간(분)",
-  yt_video_count: "유튜브 영상 편수",
+  yt_video_count: "유튜브 홍보 영상 편수",
   yt_views: "유튜브 누적 조회수",
   yt_likes: "유튜브 누적 좋아요",
   yt_comments: "유튜브 누적 댓글",
-  blog_post_count: "블로그 게시글 수",
+  blog_post_count: "블로그 홍보 게시글 수",
 };
 
 const LEVEL_ROMAN: Record<number, string> = { 0: "0", 1: "I", 2: "II", 3: "III" };
