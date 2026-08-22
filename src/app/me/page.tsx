@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AppShell from "@/components/AppShell";
 import LevelBadge from "@/components/LevelBadge";
-import VideoManager from "@/app/me/VideoManager";
+import { VideoRegisterForm, VideoList } from "@/app/me/VideoManager";
 import BlogManager from "@/app/me/BlogManager";
 import MonthlyChart from "@/app/me/MonthlyChart";
 import ProfileInfoEditor from "@/app/me/ProfileInfoEditor";
@@ -205,9 +205,11 @@ export default async function MePage() {
           </section>
         )}
 
-        <VideoManager videos={videos ?? []} disabled={isPending} />
+        <VideoRegisterForm disabled={isPending} />
 
         {currentLevel?.code === "L2" && <BlogManager posts={blogPosts ?? []} disabled={isPending} />}
+
+        <VideoList videos={videos ?? []} />
 
         {activeVideos.length > 0 && <MonthlyChart videos={activeVideos} />}
 

@@ -40,12 +40,7 @@ function emptyRow(): InputRow {
   return { id: rowSeq, url: "", title: "", durationSec: null, manualText: "", status: "idle" };
 }
 
-interface VideoManagerProps {
-  videos: Video[];
-  disabled: boolean;
-}
-
-export default function VideoManager({ videos, disabled }: VideoManagerProps) {
+export function VideoRegisterForm({ disabled }: { disabled: boolean }) {
   const [rows, setRows] = useState<InputRow[]>([emptyRow()]);
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -159,125 +154,127 @@ export default function VideoManager({ videos, disabled }: VideoManagerProps) {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <section className="card flex flex-col gap-4 p-6">
-        <h2 className="font-title text-lg font-bold text-ink">영상 등록</h2>
+    <section className="card flex flex-col gap-4 p-6">
+      <h2 className="font-title text-lg font-bold text-ink">영상 등록</h2>
 
-        {disabled ? (
-          <p className="banner bg-gold-soft px-4 py-3 text-sm text-gold">
-            승인 대기 중입니다. 관리자 승인 후 이용할 수 있습니다.
-          </p>
-        ) : (
-          <>
-            <div className="flex flex-col gap-3">
-              {rows.map((row, i) => (
-                <div key={row.id} className="flex flex-col gap-2 sm:flex-row sm:items-start">
-                  <input
-                    type="text"
-                    placeholder="영상 링크 (https://...)"
-                    value={row.url}
-                    onChange={(e) => updateRow(row.id, { url: e.target.value })}
-                    onBlur={(e) => handleUrlBlur(row.id, e.target.value)}
-                    className="input-field flex-1 px-4 text-sm"
-                    aria-label={`영상 링크 ${i + 1}`}
-                  />
-
-                  <input
-                    type="text"
-                    placeholder="제목 (선택)"
-                    value={row.title}
-                    onChange={(e) => updateRow(row.id, { title: e.target.value })}
-                    className="input-field px-4 text-sm sm:w-40"
-                    aria-label={`영상 제목 ${i + 1}`}
-                  />
-
-                  <div className="flex items-center gap-2 sm:w-48">
-                    {row.status === "auto" ? (
-                      <div className="input-field flex flex-1 items-center justify-between bg-teal-soft px-3">
-                        <span className="font-mono text-sm text-teal-deep">
-                          {row.durationSec != null ? formatDuration(row.durationSec) : "--:--"}
-                        </span>
-                        <span className="chip bg-teal px-2 text-[11px] font-semibold text-white">자동</span>
-                      </div>
-                    ) : (
-                      <input
-                        type="text"
-                        placeholder={row.status === "detecting" ? "확인 중..." : "MM:SS"}
-                        value={row.manualText}
-                        disabled={row.status === "detecting"}
-                        onChange={(e) => handleManualDuration(row.id, e.target.value)}
-                        className="input-field flex-1 px-3 font-mono text-sm"
-                        aria-label={`재생시간 ${i + 1}`}
-                      />
-                    )}
-
-                    {rows.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeRow(row.id)}
-                        className="flex h-11 w-11 shrink-0 items-center justify-center text-muted hover:text-danger"
-                        aria-label="입력 행 삭제"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-
-                  {row.error && <p className="text-xs text-danger sm:hidden">{row.error}</p>}
-                </div>
-              ))}
-            </div>
-
-            {rows.some((r) => r.error) && (
-              <ul className="hidden flex-col gap-1 sm:flex">
-                {rows.map(
-                  (r, i) =>
-                    r.error && (
-                      <li key={r.id} className="text-xs text-danger">
-                        {i + 1}번째 줄: {r.error}
-                      </li>
-                    ),
-                )}
-              </ul>
-            )}
-
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={addRow}
-                disabled={rows.length >= MAX_ROWS}
-                className="text-sm font-medium text-teal-deep disabled:text-muted"
-              >
-                + 추가 입력
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={pending}
-                className="btn rounded-[10px] bg-teal px-6 text-sm font-semibold text-white disabled:opacity-60"
-              >
-                {pending ? "저장 중..." : "저장"}
-              </button>
-            </div>
-
-            {formMessage && <p className="text-sm text-danger">{formMessage}</p>}
-          </>
-        )}
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <h2 className="font-title text-lg font-bold text-ink">내 영상 목록</h2>
-        {videos.length === 0 ? (
-          <p className="card p-6 text-center text-sm text-muted">아직 등록한 영상이 없습니다.</p>
-        ) : (
+      {disabled ? (
+        <p className="banner bg-gold-soft px-4 py-3 text-sm text-gold">
+          승인 대기 중입니다. 관리자 승인 후 이용할 수 있습니다.
+        </p>
+      ) : (
+        <>
           <div className="flex flex-col gap-3">
-            {videos.map((video) => (
-              <VideoRow key={video.id} video={video} />
+            {rows.map((row, i) => (
+              <div key={row.id} className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                <input
+                  type="text"
+                  placeholder="영상 링크 (https://...)"
+                  value={row.url}
+                  onChange={(e) => updateRow(row.id, { url: e.target.value })}
+                  onBlur={(e) => handleUrlBlur(row.id, e.target.value)}
+                  className="input-field flex-1 px-4 text-sm"
+                  aria-label={`영상 링크 ${i + 1}`}
+                />
+
+                <input
+                  type="text"
+                  placeholder="제목 (선택)"
+                  value={row.title}
+                  onChange={(e) => updateRow(row.id, { title: e.target.value })}
+                  className="input-field px-4 text-sm sm:w-40"
+                  aria-label={`영상 제목 ${i + 1}`}
+                />
+
+                <div className="flex items-center gap-2 sm:w-48">
+                  {row.status === "auto" ? (
+                    <div className="input-field flex flex-1 items-center justify-between bg-teal-soft px-3">
+                      <span className="font-mono text-sm text-teal-deep">
+                        {row.durationSec != null ? formatDuration(row.durationSec) : "--:--"}
+                      </span>
+                      <span className="chip bg-teal px-2 text-[11px] font-semibold text-white">자동</span>
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      placeholder={row.status === "detecting" ? "확인 중..." : "MM:SS"}
+                      value={row.manualText}
+                      disabled={row.status === "detecting"}
+                      onChange={(e) => handleManualDuration(row.id, e.target.value)}
+                      className="input-field flex-1 px-3 font-mono text-sm"
+                      aria-label={`재생시간 ${i + 1}`}
+                    />
+                  )}
+
+                  {rows.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeRow(row.id)}
+                      className="flex h-11 w-11 shrink-0 items-center justify-center text-muted hover:text-danger"
+                      aria-label="입력 행 삭제"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                {row.error && <p className="text-xs text-danger sm:hidden">{row.error}</p>}
+              </div>
             ))}
           </div>
-        )}
-      </section>
-    </div>
+
+          {rows.some((r) => r.error) && (
+            <ul className="hidden flex-col gap-1 sm:flex">
+              {rows.map(
+                (r, i) =>
+                  r.error && (
+                    <li key={r.id} className="text-xs text-danger">
+                      {i + 1}번째 줄: {r.error}
+                    </li>
+                  ),
+              )}
+            </ul>
+          )}
+
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={addRow}
+              disabled={rows.length >= MAX_ROWS}
+              className="text-sm font-medium text-teal-deep disabled:text-muted"
+            >
+              + 추가 입력
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={pending}
+              className="btn rounded-[10px] bg-teal px-6 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {pending ? "저장 중..." : "저장"}
+            </button>
+          </div>
+
+          {formMessage && <p className="text-sm text-danger">{formMessage}</p>}
+        </>
+      )}
+    </section>
+  );
+}
+
+export function VideoList({ videos }: { videos: Video[] }) {
+  return (
+    <section className="flex flex-col gap-4">
+      <h2 className="font-title text-lg font-bold text-ink">내 영상 목록</h2>
+      {videos.length === 0 ? (
+        <p className="card p-6 text-center text-sm text-muted">아직 등록한 영상이 없습니다.</p>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {videos.map((video) => (
+            <VideoRow key={video.id} video={video} />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
