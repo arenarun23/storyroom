@@ -54,12 +54,17 @@ export default async function LevelsPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1
-              className="text-[26px] font-bold text-ink"
-              style={{ fontFamily: "var(--font-nanum-gothic), sans-serif", letterSpacing: "normal" }}
+              className="text-[28px] font-bold text-ink"
+              style={{ fontFamily: "var(--font-body)", letterSpacing: "normal" }}
             >
               등급 안내
             </h1>
-            <p className="mt-1 font-nanum text-base text-muted">영상 활동이 쌓일수록 등급과 혜택도 함께 성장합니다.</p>
+            <p
+              className="mt-1 text-[18px] text-muted"
+              style={{ fontFamily: "var(--font-body)" }}
+            >
+              영상 활동이 쌓일수록 등급과 혜택도 함께 성장합니다.
+            </p>
           </div>
           <span className="chip shrink-0 bg-teal-soft px-3 text-[11px] font-semibold text-teal-deep">
             STORYROOM LEVEL
