@@ -190,11 +190,19 @@ export default async function LevelsPage() {
                             ⊙ {kName} 달성 조건
                           </p>
                           {promotionItems.length > 0 ? (
-                            <ul className="flex flex-col gap-1.5 text-sm text-ink">
+                            <ol className="flex flex-col gap-1.5 text-sm text-ink">
                               {promotionItems.map((line, idx) => (
-                                <li key={idx}>{line}</li>
+                                <li key={idx} className="flex items-start gap-2">
+                                  <span
+                                    className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                                    style={{ backgroundColor: accentColor }}
+                                  >
+                                    {idx + 1}
+                                  </span>
+                                  {line}
+                                </li>
                               ))}
-                            </ul>
+                            </ol>
                           ) : (
                             <ol className="flex flex-col gap-1.5 text-sm text-ink">
                               {promotionRules.map((r, idx) => (
