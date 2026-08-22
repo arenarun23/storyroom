@@ -224,6 +224,10 @@ create table level_rules (
   threshold     numeric not null,
   is_active     boolean not null default true,
   memo          text,
+  -- 같은 target_level/rule_type 안에서 rule_group이 같은 규칙끼리는 하나만
+  -- 만족해도 통과(OR)하고, null인 규칙과 서로 다른 그룹은 전부 만족해야
+  -- 한다(AND). 예: 마스터 승급의 "유튜브 또는 블로그 중 하나".
+  rule_group    integer,
   -- FR-407: 좋아요·댓글은 기준으로 선택 불가. 기간(retention) 규칙은 기간 집계가
   -- 가능한 지표만 허용(§6.3 "기간" 열이 "—"인 yt_views/yt_likes/yt_comments 제외)
   constraint level_rules_metric_check check (
@@ -381,6 +385,8 @@ begin
 end;
 $$;
 
+-- rule_group이 null인 규칙은 전부 만족해야(AND) 하고, rule_group이 같은
+-- 규칙끼리는 그중 하나만 만족해도(OR) 통과한다. 그룹 간에는 AND로 묶인다.
 create function check_rules(p_user uuid, p_level text, p_rule_type text, p_since timestamptz)
 returns boolean
 language plpgsql stable security definer set search_path = public as $$
@@ -388,12 +394,14 @@ declare
   rule record;
   metrics user_metrics;
   metric_value numeric;
+  grp integer;
+  group_passed boolean;
 begin
   metrics := get_user_metrics(p_user, p_since);
 
   for rule in
     select * from level_rules
-    where target_level = p_level and rule_type = p_rule_type and is_active = true
+    where target_level = p_level and rule_type = p_rule_type and is_active = true and rule_group is null
   loop
     metric_value := case rule.metric_key
       when 'video_count' then metrics.video_count
@@ -416,6 +424,47 @@ begin
         else false
       end
     ) then
+      return false;
+    end if;
+  end loop;
+
+  for grp in
+    select distinct rule_group from level_rules
+    where target_level = p_level and rule_type = p_rule_type and is_active = true and rule_group is not null
+  loop
+    group_passed := false;
+
+    for rule in
+      select * from level_rules
+      where target_level = p_level and rule_type = p_rule_type and is_active = true and rule_group = grp
+    loop
+      metric_value := case rule.metric_key
+        when 'video_count' then metrics.video_count
+        when 'total_duration_min' then metrics.total_duration_min
+        when 'yt_video_count' then metrics.yt_video_count
+        when 'yt_views' then metrics.yt_views
+        when 'yt_likes' then metrics.yt_likes
+        when 'yt_comments' then metrics.yt_comments
+        when 'blog_post_count' then metrics.blog_post_count
+        else null
+      end;
+
+      if (
+        case rule.operator
+          when '>=' then metric_value >= rule.threshold
+          when '>'  then metric_value >  rule.threshold
+          when '<=' then metric_value <= rule.threshold
+          when '<'  then metric_value <  rule.threshold
+          when '='  then metric_value =  rule.threshold
+          else false
+        end
+      ) then
+        group_passed := true;
+        exit;
+      end if;
+    end loop;
+
+    if not group_passed then
       return false;
     end if;
   end loop;
@@ -1296,16 +1345,18 @@ $$;
 
 grant execute on function public_stats() to anon, authenticated;
 
-insert into level_rules (target_level, rule_type, metric_key, operator, threshold) values
-  ('L1', 'promotion', 'video_count', '>=', 3),
-  ('L1', 'promotion', 'total_duration_min', '>=', 15),
-  ('L2', 'promotion', 'video_count', '>=', 10),
-  ('L2', 'promotion', 'total_duration_min', '>=', 60),
-  ('L3', 'promotion', 'video_count', '>=', 20),
-  ('L3', 'promotion', 'total_duration_min', '>=', 150),
-  ('L3', 'promotion', 'yt_video_count', '>=', 1),
-  ('L3', 'promotion', 'yt_views', '>=', 500),
-  ('L1', 'retention', 'video_count', '>=', 1),
-  ('L2', 'retention', 'video_count', '>=', 3),
-  ('L3', 'retention', 'video_count', '>=', 5),
-  ('L3', 'retention', 'yt_video_count', '>=', 1);
+insert into level_rules (target_level, rule_type, metric_key, operator, threshold, rule_group) values
+  ('L1', 'promotion', 'video_count', '>=', 3, null),
+  ('L1', 'promotion', 'total_duration_min', '>=', 15, null),
+  ('L2', 'promotion', 'video_count', '>=', 10, null),
+  ('L2', 'promotion', 'total_duration_min', '>=', 60, null),
+  ('L3', 'promotion', 'video_count', '>=', 20, null),
+  ('L3', 'promotion', 'total_duration_min', '>=', 150, null),
+  -- 유튜브·블로그 홍보는 둘 중 하나만 충족하면 된다(OR 그룹).
+  ('L3', 'promotion', 'yt_video_count', '>=', 1, 1),
+  ('L3', 'promotion', 'blog_post_count', '>=', 1, 1),
+  ('L3', 'promotion', 'yt_views', '>=', 500, null),
+  ('L1', 'retention', 'video_count', '>=', 1, null),
+  ('L2', 'retention', 'video_count', '>=', 3, null),
+  ('L3', 'retention', 'video_count', '>=', 5, null),
+  ('L3', 'retention', 'yt_video_count', '>=', 1, null);

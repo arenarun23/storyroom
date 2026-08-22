@@ -152,6 +152,7 @@ export interface LevelRule {
   is_active: boolean;
   memo: string | null;
   sort_order: number;
+  rule_group: number | null;
 }
 
 export interface AppConfigRow {

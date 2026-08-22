@@ -76,6 +76,7 @@ export default async function MePage() {
         .eq("target_level", nextLevel.code)
         .eq("rule_type", "promotion")
         .eq("is_active", true)
+        .order("sort_order")
     : { data: null };
 
   const m = metrics ?? {
