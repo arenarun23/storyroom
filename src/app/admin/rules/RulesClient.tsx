@@ -7,7 +7,15 @@ import { adminUpdateConfig } from "@/app/admin/config/actions";
 import { METRIC_LABELS } from "@/lib/format";
 import type { AppConfigRow, Level, LevelRule } from "@/lib/types";
 
-const PROMOTION_METRICS = ["video_count", "total_duration_min", "yt_video_count", "yt_views", "yt_likes", "yt_comments"];
+const PROMOTION_METRICS = [
+  "video_count",
+  "total_duration_min",
+  "yt_video_count",
+  "yt_views",
+  "yt_likes",
+  "yt_comments",
+  "blog_post_count",
+];
 const RETENTION_METRICS = ["video_count", "total_duration_min", "yt_video_count"];
 const OPERATORS = [">=", ">", "<=", "<", "="];
 

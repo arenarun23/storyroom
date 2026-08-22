@@ -227,7 +227,7 @@ create table level_rules (
   -- FR-407: 좋아요·댓글은 기준으로 선택 불가. 기간(retention) 규칙은 기간 집계가
   -- 가능한 지표만 허용(§6.3 "기간" 열이 "—"인 yt_views/yt_likes/yt_comments 제외)
   constraint level_rules_metric_check check (
-    metric_key in ('video_count','total_duration_min','yt_video_count','yt_views','yt_likes','yt_comments')
+    metric_key in ('video_count','total_duration_min','yt_video_count','yt_views','yt_likes','yt_comments','blog_post_count')
     and (
       rule_type = 'promotion'
       or (rule_type = 'retention' and metric_key in ('video_count','total_duration_min','yt_video_count'))
@@ -333,7 +333,8 @@ create type user_metrics as (
   received_likes      integer,
   received_comments   integer,
   given_likes         integer,
-  given_comments      integer
+  given_comments      integer,
+  blog_post_count     integer
 );
 
 -- 누적(p_since=null) 또는 최근 기간(p_since 이후 등록분) 지표 계산.
@@ -371,6 +372,11 @@ begin
   select count(*) into result.given_comments
   from comments where actor_id = p_user and status = 'active';
 
+  select count(*) into result.blog_post_count
+  from blog_posts
+  where owner_id = p_user and status = 'active'
+    and (p_since is null or created_at >= p_since);
+
   return result;
 end;
 $$;
@@ -396,6 +402,7 @@ begin
       when 'yt_views' then metrics.yt_views
       when 'yt_likes' then metrics.yt_likes
       when 'yt_comments' then metrics.yt_comments
+      when 'blog_post_count' then metrics.blog_post_count
       else null
     end;
 

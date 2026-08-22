@@ -64,6 +64,7 @@ export const METRIC_LABELS: Record<string, string> = {
   yt_views: "유튜브 누적 조회수",
   yt_likes: "유튜브 누적 좋아요",
   yt_comments: "유튜브 누적 댓글",
+  blog_post_count: "블로그 게시글 수",
 };
 
 const LEVEL_ROMAN: Record<number, string> = { 0: "0", 1: "I", 2: "II", 3: "III" };

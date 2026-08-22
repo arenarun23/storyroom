@@ -21,6 +21,7 @@ interface UserMetricsLike {
   received_comments: number;
   given_likes: number;
   given_comments: number;
+  blog_post_count: number;
 }
 
 interface LevelHistoryRow {

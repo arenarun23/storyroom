@@ -29,6 +29,7 @@ interface UserMetrics {
   received_comments: number;
   given_likes: number;
   given_comments: number;
+  blog_post_count: number;
 }
 
 export default async function MePage() {
@@ -88,6 +89,7 @@ export default async function MePage() {
     received_comments: 0,
     given_likes: 0,
     given_comments: 0,
+    blog_post_count: 0,
   };
 
   const metricValue = (key: string) => (m as unknown as Record<string, number>)[key] ?? 0;

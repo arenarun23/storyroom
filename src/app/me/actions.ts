@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { extractYouTubeId, normalizeUrl } from "@/lib/format";
-import type { ActionResult, CreateVideosResult, VideoInputRow } from "@/lib/types";
+import type { ActionResult, BlogPostInputRow, CreateBlogPostsResult, CreateVideosResult, VideoInputRow } from "@/lib/types";
 
 const URL_PATTERN = /^https?:\/\//i;
 const MAX_ROWS = 10;
@@ -200,9 +200,9 @@ export async function deleteVideo(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
-// 스토리룸 홍보 블로그 게시물 등록. 영상 등록과 동일하게 승인 상태 확인 →
-// 형식 검증 → 중복 확인 순으로 처리하고, 관리자 승인 대기(pending) 상태로 저장한다.
-export async function createBlogPost(url: string, title: string | null): Promise<ActionResult> {
+// 스토리룸 홍보 블로그 게시물 일괄 등록. 영상 등록과 동일한 검증 순서(로그인 →
+// 승인 상태 → 행별 형식 → 입력 내 중복 → 기존 등록분 중복 → 일괄 INSERT)를 따른다.
+export async function createBlogPosts(rows: BlogPostInputRow[]): Promise<CreateBlogPostsResult> {
   const supabase = await createClient();
 
   const {
@@ -220,28 +220,75 @@ export async function createBlogPost(url: string, title: string | null): Promise
     return { ok: false, message: "승인 대기 중입니다. 관리자 승인 후 이용할 수 있습니다." };
   }
 
-  const trimmedUrl = url.trim();
-  if (!URL_PATTERN.test(trimmedUrl)) {
-    return { ok: false, message: "http(s):// 로 시작하는 링크를 넣어주세요" };
+  if (rows.length === 0) {
+    return { ok: false, message: "등록할 게시물을 입력해 주세요." };
+  }
+  if (rows.length > MAX_ROWS) {
+    return { ok: false, message: `한 번에 최대 ${MAX_ROWS}건까지 등록할 수 있습니다.` };
   }
 
-  const urlKey = normalizeUrl(trimmedUrl);
-  const { data: existing } = await supabase
-    .from("blog_posts")
-    .select("id")
-    .eq("url_key", urlKey)
-    .maybeSingle();
+  type Parsed = { url: string; key: string } | null;
 
-  if (existing) {
-    return { ok: false, message: "이미 등록된 게시물입니다" };
-  }
+  const rowErrors: Record<number, string> = {};
 
-  const { error } = await supabase.from("blog_posts").insert({
-    owner_id: user.id,
-    title: title?.trim() || null,
-    url: trimmedUrl,
-    url_key: urlKey,
+  const parsed: Parsed[] = rows.map((row) => {
+    const url = row.url.trim();
+    if (!URL_PATTERN.test(url)) return null;
+    return { url, key: normalizeUrl(url) };
   });
+
+  rows.forEach((row, i) => {
+    if (parsed[i] !== null) return;
+    rowErrors[i] = "http(s):// 로 시작하는 링크를 넣어주세요";
+  });
+
+  // 입력 내 중복
+  const byKey = new Map<string, number[]>();
+  parsed.forEach((p, i) => {
+    if (!p) return;
+    const idxs = byKey.get(p.key) ?? [];
+    idxs.push(i);
+    byKey.set(p.key, idxs);
+  });
+  for (const idxs of byKey.values()) {
+    if (idxs.length > 1) {
+      idxs.forEach((i) => {
+        rowErrors[i] = "같은 링크가 중복되었습니다";
+      });
+    }
+  }
+
+  // 기존 등록분 중복
+  const candidateKeys = parsed
+    .map((p, i) => (p && !rowErrors[i] ? p.key : null))
+    .filter((k): k is string => k !== null);
+
+  if (candidateKeys.length > 0) {
+    const { data: existing } = await supabase
+      .from("blog_posts")
+      .select("url_key")
+      .in("url_key", candidateKeys);
+
+    const existingSet = new Set((existing ?? []).map((p) => p.url_key as string));
+    parsed.forEach((p, i) => {
+      if (p && !rowErrors[i] && existingSet.has(p.key)) {
+        rowErrors[i] = "이미 등록된 게시물입니다";
+      }
+    });
+  }
+
+  if (Object.keys(rowErrors).length > 0) {
+    return { ok: false, rowErrors };
+  }
+
+  const inserts = parsed.map((p, i) => ({
+    owner_id: user.id,
+    title: rows[i].title?.trim() || null,
+    url: p!.url,
+    url_key: p!.key,
+  }));
+
+  const { error } = await supabase.from("blog_posts").insert(inserts);
 
   if (error) {
     if (error.code === "23505") {

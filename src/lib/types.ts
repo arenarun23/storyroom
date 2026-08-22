@@ -90,6 +90,15 @@ export type CreateVideosResult =
   | { ok: true }
   | { ok: false; message?: string; rowErrors?: Record<number, string> };
 
+export interface BlogPostInputRow {
+  url: string;
+  title: string | null;
+}
+
+export type CreateBlogPostsResult =
+  | { ok: true }
+  | { ok: false; message?: string; rowErrors?: Record<number, string> };
+
 export type ActionResult = { ok: true } | { ok: false; message: string };
 
 export type SortOption = "latest" | "likes" | "comments";
