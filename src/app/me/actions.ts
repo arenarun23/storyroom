@@ -199,3 +199,79 @@ export async function deleteVideo(id: string): Promise<ActionResult> {
   revalidatePath("/me");
   return { ok: true };
 }
+
+// 스토리룸 홍보 블로그 게시물 등록. 영상 등록과 동일하게 승인 상태 확인 →
+// 형식 검증 → 중복 확인 순으로 처리하고, 관리자 승인 대기(pending) 상태로 저장한다.
+export async function createBlogPost(url: string, title: string | null): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "로그인이 필요합니다." };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("approval_status")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.approval_status !== "approved") {
+    return { ok: false, message: "승인 대기 중입니다. 관리자 승인 후 이용할 수 있습니다." };
+  }
+
+  const trimmedUrl = url.trim();
+  if (!URL_PATTERN.test(trimmedUrl)) {
+    return { ok: false, message: "http(s):// 로 시작하는 링크를 넣어주세요" };
+  }
+
+  const urlKey = normalizeUrl(trimmedUrl);
+  const { data: existing } = await supabase
+    .from("blog_posts")
+    .select("id")
+    .eq("url_key", urlKey)
+    .maybeSingle();
+
+  if (existing) {
+    return { ok: false, message: "이미 등록된 게시물입니다" };
+  }
+
+  const { error } = await supabase.from("blog_posts").insert({
+    owner_id: user.id,
+    title: title?.trim() || null,
+    url: trimmedUrl,
+    url_key: urlKey,
+  });
+
+  if (error) {
+    if (error.code === "23505") {
+      return { ok: false, message: "이미 등록된 게시물입니다" };
+    }
+    return { ok: false, message: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요" };
+  }
+
+  revalidatePath("/me");
+  return { ok: true };
+}
+
+export async function deleteBlogPost(id: string): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "로그인이 필요합니다." };
+
+  const { error } = await supabase
+    .from("blog_posts")
+    .update({ status: "deleted" })
+    .eq("id", id)
+    .eq("owner_id", user.id);
+
+  if (error) {
+    return { ok: false, message: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요" };
+  }
+
+  revalidatePath("/me");
+  return { ok: true };
+}

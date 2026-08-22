@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: "/admin/records", label: "회원관리" },
   { href: "/admin/members", label: "회원승인" },
   { href: "/admin/videos", label: "영상검토" },
+  { href: "/admin/blog", label: "블로그검토" },
   { href: "/admin/levels", label: "등급관리" },
   { href: "/admin/rules", label: "기준설정" },
   { href: "/admin/config", label: "전역설정" },

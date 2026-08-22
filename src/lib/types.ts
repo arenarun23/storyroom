@@ -6,6 +6,7 @@ export type ProfileStatus = "active" | "suspended" | "withdrawn";
 export type Platform = "storyroom" | "youtube";
 export type DurationSource = "auto" | "manual" | "api";
 export type VideoStatus = "active" | "pending" | "rejected" | "deleted" | "withdrawn" | "reset";
+export type BlogPostStatus = "active" | "pending" | "rejected" | "deleted" | "withdrawn";
 
 export interface Level {
   code: string;
@@ -63,6 +64,17 @@ export interface Video {
   yt_comments: number;
   is_flagged: boolean;
   status: VideoStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BlogPost {
+  id: string;
+  owner_id: string | null;
+  title: string | null;
+  url: string | null;
+  url_key: string;
+  status: BlogPostStatus;
   created_at: string;
   updated_at: string;
 }

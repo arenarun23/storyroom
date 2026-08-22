@@ -468,6 +468,34 @@ export async function adminSetVideoStatus(
   return { ok: true };
 }
 
+// 스토리룸 홍보 블로그 게시물 승인/거절/삭제. 영상 검토와 동일한 패턴.
+export async function adminSetBlogPostStatus(
+  postId: string,
+  status: "active" | "deleted" | "rejected",
+): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const client = createAdminClient();
+
+  const { data: before } = await client.from("blog_posts").select("status").eq("id", postId).single();
+
+  const { error } = await client.from("blog_posts").update({ status }).eq("id", postId);
+  if (error) return { ok: false, message: "처리에 실패했습니다." };
+
+  const actionName =
+    status === "active" ? "approve_blog_post" : status === "rejected" ? "reject_blog_post" : "delete_blog_post";
+  await client.from("audit_log").insert({
+    admin_id: admin.id,
+    action: actionName,
+    target_table: "blog_posts",
+    target_id: postId,
+    before,
+    after: { status },
+  });
+
+  revalidatePath("/admin/blog");
+  return { ok: true };
+}
+
 // 관리자가 회원이 등록한 영상의 제목/링크/재생시간을 직접 수정한다.
 // service role로 처리하므로 소유자 제한 없이 어떤 상태의 영상이든 고칠 수 있다.
 export async function adminUpdateVideoInfo(

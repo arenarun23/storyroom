@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import AppShell from "@/components/AppShell";
 import LevelBadge from "@/components/LevelBadge";
 import VideoManager from "@/app/me/VideoManager";
+import BlogManager from "@/app/me/BlogManager";
 import MonthlyChart from "@/app/me/MonthlyChart";
 import ProfileInfoEditor from "@/app/me/ProfileInfoEditor";
 import {
@@ -15,7 +16,7 @@ import {
   isWithinWarningWindow,
 } from "@/lib/format";
 import { isAdminRole } from "@/lib/roles";
-import type { Level, Profile, Video } from "@/lib/types";
+import type { BlogPost, Level, Profile, Video } from "@/lib/types";
 
 interface UserMetrics {
   video_count: number;
@@ -38,7 +39,7 @@ export default async function MePage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: profile }, { data: levels }, { data: metrics }, { data: videos }, { data: warnDaysCfg }] =
+  const [{ data: profile }, { data: levels }, { data: metrics }, { data: videos }, { data: blogPosts }, { data: warnDaysCfg }] =
     await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).single<Profile>(),
       supabase.from("levels").select("*").order("order_no").returns<Level[]>(),
@@ -50,6 +51,13 @@ export default async function MePage() {
         .in("status", ["active", "pending", "rejected"])
         .order("created_at", { ascending: false })
         .returns<Video[]>(),
+      supabase
+        .from("blog_posts")
+        .select("*")
+        .eq("owner_id", user.id)
+        .in("status", ["active", "pending", "rejected"])
+        .order("created_at", { ascending: false })
+        .returns<BlogPost[]>(),
       supabase.from("app_config").select("value").eq("key", "retention_warning_days").single(),
     ]);
 
@@ -198,6 +206,8 @@ export default async function MePage() {
         )}
 
         <VideoManager videos={videos ?? []} disabled={isPending} />
+
+        {currentLevel?.code === "L2" && <BlogManager posts={blogPosts ?? []} disabled={isPending} />}
 
         {activeVideos.length > 0 && <MonthlyChart videos={activeVideos} />}
 

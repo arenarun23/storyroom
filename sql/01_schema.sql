@@ -158,6 +158,22 @@ create index idx_videos_status on videos(status);
 create index idx_videos_platform on videos(platform);
 create index idx_videos_created_at on videos(created_at desc);
 
+-- 스토리룸 홍보 블로그 게시물 등록. 영상처럼 관리자 승인 대상(pending → active/rejected).
+create table blog_posts (
+  id          uuid primary key default gen_random_uuid(),
+  owner_id    uuid references profiles(id) on delete set null,
+  title       text,
+  url         text not null,
+  url_key     text not null unique,
+  status      text not null default 'pending' check (status in ('active','pending','rejected','deleted','withdrawn')),
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+create index idx_blog_posts_owner on blog_posts(owner_id);
+create index idx_blog_posts_status on blog_posts(status);
+create index idx_blog_posts_created_at on blog_posts(created_at desc);
+
 create table likes (
   id         uuid primary key default gen_random_uuid(),
   video_id   uuid not null references videos(id) on delete cascade,
@@ -712,6 +728,11 @@ begin
       status = 'withdrawn'
   where owner_id = p_user;
 
+  update blog_posts
+  set owner_id = null, title = null, url = null, url_key = 'withdrawn:' || id::text,
+      status = 'withdrawn'
+  where owner_id = p_user;
+
   -- profiles가 CASCADE로 삭제되기 전에, 회원 활동 피드(admin_activity_feed)에
   -- 표시할 최소 정보를 남겨둔다. 본인 탈퇴이므로 admin_id는 null.
   insert into audit_log (admin_id, action, target_table, target_id, before, after)
@@ -927,6 +948,10 @@ create trigger trg_videos_set_updated_at
 before update on videos
 for each row execute function set_updated_at();
 
+create trigger trg_blog_posts_set_updated_at
+before update on blog_posts
+for each row execute function set_updated_at();
+
 -- admin_reassign_video: 거절/삭제된 영상을 다른 사용자 계정으로 재배정해 승인한다.
 -- 원본 기록은 남기되(status='reset') 식별정보(소유자/제목/url)를 비워 url_key
 -- 유니크 제약과 충돌하지 않게 하고, 같은 내용을 새 행으로 다른 계정에 등록한다.
@@ -1061,6 +1086,7 @@ alter table app_config enable row level security;
 alter table levels enable row level security;
 alter table profiles enable row level security;
 alter table videos enable row level security;
+alter table blog_posts enable row level security;
 alter table likes enable row level security;
 alter table comments enable row level security;
 alter table video_transcripts enable row level security;
@@ -1098,6 +1124,14 @@ create policy videos_select on videos for select to authenticated using (true);
 create policy videos_insert on videos for insert to authenticated
   with check (owner_id = auth.uid() and is_approved());
 create policy videos_update on videos for update to authenticated
+  using (owner_id = auth.uid())
+  with check (owner_id = auth.uid());
+
+-- blog_posts: 로그인 사용자 전체 조회, 본인 소유 + 승인 상태만 쓰기(영상과 동일한 규칙)
+create policy blog_posts_select on blog_posts for select to authenticated using (true);
+create policy blog_posts_insert on blog_posts for insert to authenticated
+  with check (owner_id = auth.uid() and is_approved());
+create policy blog_posts_update on blog_posts for update to authenticated
   using (owner_id = auth.uid())
   with check (owner_id = auth.uid());
 
