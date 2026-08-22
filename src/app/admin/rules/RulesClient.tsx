@@ -3,8 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { adminCreateRule, adminDeleteRule, adminReorderRules, adminUpdateRule } from "@/app/admin/rules/actions";
+import { adminUpdateConfig } from "@/app/admin/config/actions";
 import { METRIC_LABELS } from "@/lib/format";
-import type { Level, LevelRule } from "@/lib/types";
+import type { AppConfigRow, Level, LevelRule } from "@/lib/types";
 
 const PROMOTION_METRICS = ["video_count", "total_duration_min", "yt_video_count", "yt_views", "yt_likes", "yt_comments"];
 const RETENTION_METRICS = ["video_count", "total_duration_min", "yt_video_count"];
@@ -13,15 +14,24 @@ const OPERATORS = [">=", ">", "<=", "<", "="];
 interface RulesClientProps {
   levels: Level[];
   rules: LevelRule[];
+  config: AppConfigRow[];
 }
 
-export default function RulesClient({ levels, rules }: RulesClientProps) {
+export default function RulesClient({ levels, rules, config }: RulesClientProps) {
   const router = useRouter();
   const targetableLevels = levels.filter((l) => l.order_no > 0);
+  const retentionMode = config.find((c) => c.key === "retention_period_mode")?.value ?? "yearly";
+  const retentionMonths = config.find((c) => c.key === "retention_months")?.value ?? "6";
 
   return (
     <div className="flex flex-col gap-8">
       <h1 className="font-title text-xl font-bold text-ink">기준 설정</h1>
+
+      <RetentionExpirySection
+        mode={retentionMode}
+        months={retentionMonths}
+        onChanged={() => router.refresh()}
+      />
 
       {targetableLevels.map((level) => {
         const levelRules = rules.filter((r) => r.target_level === level.code);
@@ -40,6 +50,100 @@ export default function RulesClient({ levels, rules }: RulesClientProps) {
         );
       })}
     </div>
+  );
+}
+
+function RetentionExpirySection({
+  mode,
+  months,
+  onChanged,
+}: {
+  mode: string;
+  months: string;
+  onChanged: () => void;
+}) {
+  const [selectedMode, setSelectedMode] = useState(mode);
+  const [selectedMonths, setSelectedMonths] = useState(months);
+  const [pending, startTransition] = useTransition();
+  const [toast, setToast] = useState<{ ok: boolean; message: string } | null>(null);
+
+  function handleSave() {
+    setToast(null);
+    startTransition(async () => {
+      const modeResult = await adminUpdateConfig("retention_period_mode", selectedMode);
+      if (!modeResult.ok) {
+        setToast({ ok: false, message: modeResult.message ?? "저장에 실패했습니다." });
+        return;
+      }
+      if (selectedMode === "manual") {
+        const monthsResult = await adminUpdateConfig("retention_months", selectedMonths);
+        if (!monthsResult.ok) {
+          setToast({ ok: false, message: monthsResult.message ?? "저장에 실패했습니다." });
+          return;
+        }
+      }
+      setToast({ ok: true, message: "저장되었습니다." });
+      window.setTimeout(() => setToast((t) => (t?.ok ? null : t)), 2000);
+      onChanged();
+    });
+  }
+
+  return (
+    <section className="card flex flex-col gap-3 p-6">
+      <h2 className="font-title text-lg font-bold text-ink">등급 유지 만료일</h2>
+      <p className="text-xs text-muted">
+        승급/유지 판정 시 새로 부여되는 만료일 계산 방식입니다. 기존 회원의 만료일에는 영향을 주지 않습니다.
+      </p>
+
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-muted">계산 방식</label>
+          <select
+            value={selectedMode}
+            onChange={(e) => setSelectedMode(e.target.value)}
+            className="input-field px-2 text-xs"
+          >
+            <option value="yearly">매년 (그 해 12월 31일까지)</option>
+            <option value="manual">수동 (기간 선택)</option>
+          </select>
+        </div>
+
+        {selectedMode === "manual" && (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-muted">유지 기간 (개월)</label>
+            <input
+              type="number"
+              min={1}
+              value={selectedMonths}
+              onChange={(e) => setSelectedMonths(e.target.value)}
+              className="input-field w-24 px-2 text-xs"
+            />
+          </div>
+        )}
+
+        <div className="relative self-start">
+          <button
+            type="button"
+            disabled={pending}
+            onClick={handleSave}
+            className="chip bg-teal px-4 text-xs font-semibold text-white transition-colors duration-150 hover:bg-teal-deep active:scale-95 disabled:pointer-events-none disabled:opacity-60"
+          >
+            {pending ? "저장 중..." : "저장"}
+          </button>
+          {toast && (
+            <div
+              className={`absolute left-0 top-full z-10 mt-2 whitespace-nowrap rounded-[8px] border px-3 py-1.5 text-xs font-semibold shadow-[var(--shadow-s2)] ${
+                toast.ok
+                  ? "border-teal/40 bg-teal-soft text-teal-deep"
+                  : "border-danger/40 bg-danger/10 text-danger"
+              }`}
+            >
+              {toast.message}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 

@@ -16,6 +16,8 @@ export async function adminUpdateLevel(
     badge_color?: string | null;
     has_retention?: boolean;
     is_active?: boolean;
+    promotion_note?: string | null;
+    retention_note?: string | null;
   },
 ): Promise<ActionResult> {
   const admin = await requireAdmin();

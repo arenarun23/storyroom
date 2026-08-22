@@ -100,6 +100,10 @@ create table levels (
   badge_image_url text,
   has_retention   boolean not null default true,
   is_active       boolean not null default true,
+  -- 등급 안내 카드에 표시할 문구. 줄바꿈 = 항목 하나. 비어 있으면
+  -- level_rules 기준값으로 자동 생성한 문구를 대신 보여준다(lib/levelSummary.ts).
+  promotion_note  text,
+  retention_note  text,
   updated_at      timestamptz not null default now()
 );
 
@@ -422,11 +426,20 @@ begin
 end;
 $$;
 
--- 유지 만료일은 유지 개월수와 무관하게, 등급 갱신이 일어나는 시점(now())의
--- "해당 연도" 12월 31일로 고정한다(예: 2026년에 갱신되면 2026-12-31).
+-- retention_period_mode 설정('yearly' | 'manual')에 따라 유지 만료일 계산
+-- 방식을 바꾼다. yearly(기본값): 갱신 시점 연도의 12월 31일까지.
+-- manual: 갱신 시점으로부터 retention_months개월 뒤까지.
 create function retention_expiry_date() returns timestamptz
 language plpgsql stable as $$
+declare
+  mode text;
+  months integer;
 begin
+  mode := coalesce(cfg_text('retention_period_mode'), 'yearly');
+  if mode = 'manual' then
+    months := coalesce(cfg_int('retention_months'), 6);
+    return now() + (months || ' months')::interval;
+  end if;
   return (make_date(extract(year from now())::int, 12, 31) + time '23:59:59') at time zone 'Asia/Seoul';
 end;
 $$;
@@ -1191,7 +1204,8 @@ grant execute on function admin_activity_feed(integer, timestamptz, uuid) to aut
 insert into app_config (key, value, description) values
   ('site_name', '스토리룸 교사 그룹', '사이트 이름'),
   ('signup_approval_mode', 'auto', '가입 승인 모드 (auto|manual)'),
-  ('retention_months', '6', '유지기간(개월)'),
+  ('retention_period_mode', 'yearly', '유지 만료일 계산 방식 (yearly|manual)'),
+  ('retention_months', '6', '유지기간(개월, retention_period_mode=manual일 때만 사용)'),
   ('retention_warning_days', '30', '만료 경고 시작일'),
   ('promotion_cooldown_months', '1', '복귀 유예기간(개월)'),
   ('max_video_duration_min', '30', '영상 시간 상한(분)'),
@@ -1202,8 +1216,8 @@ insert into app_config (key, value, description) values
 insert into levels (code, order_no, name, badge_color, badge_image_url, has_retention) values
   ('L0', 0, 'Starter', '#6BD3C4,#2A9187', '/badges/starter.png', false),
   ('L1', 1, 'Beginner', '#C3CFCD,#8B9B98', '/badges/beginner.png', true),
-  ('L2', 2, 'Creator', '#1CC0AE,#0A6B62', '/badges/creator.png', true),
-  ('L3', 3, 'Master', '#F0D588,#A97615', '/badges/master.png', true);
+  ('L2', 2, 'Creator', '#5EABEE,#0044A6', '/badges/creator.png', true),
+  ('L3', 3, 'Master', '#B18AE0,#490B5C', '/badges/master.png', true);
 
 -- 랜딩 페이지(SCR-01)용 공개 통계. RLS는 authenticated 대상이므로 비로그인
 -- 방문자를 위해 SECURITY DEFINER 함수로 집계값만 노출한다(개인정보 없음).

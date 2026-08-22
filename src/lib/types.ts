@@ -17,6 +17,8 @@ export interface Level {
   badge_image_url: string | null;
   has_retention: boolean;
   is_active: boolean;
+  promotion_note: string | null;
+  retention_note: string | null;
 }
 
 export interface Profile {

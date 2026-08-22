@@ -27,5 +27,6 @@ export async function adminUpdateConfig(key: string, value: string): Promise<Act
   });
 
   revalidatePath("/admin/config");
+  revalidatePath("/admin/rules");
   return { ok: true };
 }
