@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/supabase/adminAuth";
 import { createClient } from "@/lib/supabase/server";
 
 export interface ActivityRow {
-  activity_type: "login" | "video" | "comment" | "like" | "signup" | "withdrawal";
+  activity_type: "login" | "video" | "comment" | "like" | "signup";
   user_id: string;
   display_name: string | null;
   email: string;

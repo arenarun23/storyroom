@@ -17,7 +17,6 @@ const TYPE_LABELS: Record<ActivityRow["activity_type"], string> = {
   comment: "댓글",
   like: "좋아요",
   signup: "회원가입",
-  withdrawal: "회원탈퇴",
 };
 
 const TYPE_COLORS: Record<ActivityRow["activity_type"], string> = {
@@ -26,7 +25,6 @@ const TYPE_COLORS: Record<ActivityRow["activity_type"], string> = {
   comment: "border-gold/40 bg-gold-soft text-gold",
   like: "border-danger/40 bg-danger/10 text-danger",
   signup: "border-ink/30 bg-ink/5 text-ink",
-  withdrawal: "border-danger/40 bg-danger/10 text-danger",
 };
 
 export default function ActivityFeedClient({
@@ -39,7 +37,7 @@ export default function ActivityFeedClient({
   const [rows, setRows] = useState(initialRows);
   const [userId, setUserId] = useState("");
   const [typeFilter, setTypeFilter] = useState<Set<ActivityRow["activity_type"]>>(
-    new Set(["login", "video", "comment", "like", "signup", "withdrawal"]),
+    new Set(["login", "video", "comment", "like", "signup"]),
   );
   const [cursor, setCursor] = useState<string | null>(
     initialRows.length === 50 ? initialRows[initialRows.length - 1].created_at : null,
