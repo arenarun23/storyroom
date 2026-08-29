@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import NotificationBell from "@/components/NotificationBell";
+import MessageWidget from "@/components/MessageWidget";
 
 interface AppShellProps {
   displayName: string | null;
@@ -123,6 +124,8 @@ export default function AppShell({ displayName, avatarUrl, email, isAdmin = fals
           </Link>
         ))}
       </nav>
+
+      <MessageWidget />
     </div>
   );
 }

@@ -72,6 +72,8 @@ drop function if exists cfg_int(text) cascade;
 drop function if exists cfg_text(text) cascade;
 drop function if exists handle_new_user() cascade;
 drop function if exists trg_guard_profile_fn() cascade;
+drop function if exists trg_guard_message_thread_fn() cascade;
+drop function if exists trg_messages_touch_thread_fn() cascade;
 drop function if exists trg_block_self_like_fn() cascade;
 drop function if exists trg_validate_video_fn() cascade;
 drop function if exists trg_validate_comment_fn() cascade;
@@ -291,6 +293,34 @@ create table login_history (
 );
 
 create index idx_login_history_user on login_history(user_id, logged_in_at desc);
+
+-- 회원↔관리자 1대1 메시지. 회원이 관리자 목록에서 골라 대화를 시작하고,
+-- 그 대화는 해당 회원과 관리자만 볼 수 있다(같은 회원-관리자 쌍은 하나의
+-- 스레드로 재사용). *_last_read_at으로 읽음 여부를 판단한다.
+create table message_threads (
+  id                 uuid primary key default gen_random_uuid(),
+  user_id            uuid not null references profiles(id) on delete cascade,
+  admin_id           uuid not null references profiles(id) on delete cascade,
+  user_last_read_at  timestamptz,
+  admin_last_read_at timestamptz,
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now(),
+  unique (user_id, admin_id)
+);
+
+create index idx_message_threads_user on message_threads(user_id);
+create index idx_message_threads_admin on message_threads(admin_id);
+
+create table messages (
+  id          uuid primary key default gen_random_uuid(),
+  thread_id   uuid not null references message_threads(id) on delete cascade,
+  sender_id   uuid references profiles(id) on delete set null,
+  sender_role text not null check (sender_role in ('user','admin')),
+  content     text not null,
+  created_at  timestamptz not null default now()
+);
+
+create index idx_messages_thread on messages(thread_id, created_at);
 
 -- =====================================================================
 -- 2. 공통 함수 (§11.3)
@@ -936,6 +966,44 @@ create trigger trg_guard_profile
 before update on profiles
 for each row execute function trg_guard_profile_fn();
 
+-- 메시지 스레드의 참가자(user_id/admin_id)는 앱에서 직접 바꿀 수 없다
+-- (읽음 시각만 갱신 가능) — 그래야 참가자가 스레드를 다른 사람에게
+-- 임의로 재배정하는 것을 막을 수 있다.
+create function trg_guard_message_thread_fn() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if (
+    new.user_id is distinct from old.user_id
+    or new.admin_id is distinct from old.admin_id
+  ) then
+    if not (
+      coalesce(auth.role(), 'service_role') = 'service_role'
+      or coalesce(current_setting('app.internal_write', true), 'off') = 'on'
+    ) then
+      raise exception '보호된 컬럼은 직접 수정할 수 없습니다.';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_guard_message_thread
+before update on message_threads
+for each row execute function trg_guard_message_thread_fn();
+
+-- 새 메시지가 등록되면 스레드 목록 정렬용 updated_at을 갱신한다.
+create function trg_messages_touch_thread_fn() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  update message_threads set updated_at = now() where id = new.thread_id;
+  return new;
+end;
+$$;
+
+create trigger trg_messages_touch_thread
+after insert on messages
+for each row execute function trg_messages_touch_thread_fn();
+
 -- trg_block_self_like: 자가 좋아요 차단 + 최근활동일 갱신
 create function trg_block_self_like_fn() returns trigger
 language plpgsql security definer set search_path = public as $$
@@ -1152,6 +1220,8 @@ alter table level_history enable row level security;
 alter table notifications enable row level security;
 alter table audit_log enable row level security;
 alter table login_history enable row level security;
+alter table message_threads enable row level security;
+alter table messages enable row level security;
 
 -- app_config: 전체 조회, admin만 쓰기
 create policy app_config_select on app_config for select to authenticated using (true);
@@ -1235,6 +1305,42 @@ create policy audit_log_select on audit_log for select to authenticated
 -- login_history: 최고관리자만 조회, 쓰기는 시스템
 create policy login_history_select on login_history for select to authenticated
   using (exists (select 1 from profiles where id = auth.uid() and role = 'super_admin'));
+
+-- message_threads: 스레드 당사자(회원 본인 또는 지정된 관리자)만 조회.
+-- 생성은 회원만(관리자 목록 중에서 골라야 하므로 admin_id가 실제 관리자여야
+-- 함), 수정은 읽음 시각 갱신 용도로 당사자에게 허용(보호 컬럼은 트리거가 차단).
+create policy message_threads_select on message_threads for select to authenticated
+  using (user_id = auth.uid() or admin_id = auth.uid());
+create policy message_threads_insert on message_threads for insert to authenticated
+  with check (
+    user_id = auth.uid() and is_approved()
+    and exists (select 1 from profiles where id = admin_id and role in ('admin', 'super_admin'))
+  );
+create policy message_threads_update on message_threads for update to authenticated
+  using (user_id = auth.uid() or admin_id = auth.uid())
+  with check (user_id = auth.uid() or admin_id = auth.uid());
+
+-- messages: 스레드 당사자만 조회/작성. sender_role은 실제 보낸 쪽과
+-- 일치해야만 저장 가능(다른 쪽인 척 위장 방지).
+create policy messages_select on messages for select to authenticated
+  using (
+    exists (
+      select 1 from message_threads t
+      where t.id = messages.thread_id and (t.user_id = auth.uid() or t.admin_id = auth.uid())
+    )
+  );
+create policy messages_insert on messages for insert to authenticated
+  with check (
+    sender_id = auth.uid()
+    and exists (
+      select 1 from message_threads t
+      where t.id = messages.thread_id
+        and (
+          (t.user_id = auth.uid() and sender_role = 'user')
+          or (t.admin_id = auth.uid() and sender_role = 'admin')
+        )
+    )
+  );
 
 -- login_history는 오늘 이후 로그인만 기록한다. 그 이전 로그인은 Supabase
 -- Auth가 내부적으로 쌓는 auth.audit_log_entries에 남아있을 수도 있어(문서화
@@ -1360,3 +1466,22 @@ insert into level_rules (target_level, rule_type, metric_key, operator, threshol
   ('L2', 'retention', 'video_count', '>=', 3, null),
   ('L3', 'retention', 'video_count', '>=', 5, null),
   ('L3', 'retention', 'yt_video_count', '>=', 1, null);
+
+-- 메시지 실시간 알림(§ 회원-관리자 메시지)을 위해 Realtime publication에
+-- 등록한다. 이미 등록돼 있으면 건너뛴다(재실행 안전).
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'messages'
+  ) then
+    alter publication supabase_realtime add table messages;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'message_threads'
+  ) then
+    alter publication supabase_realtime add table message_threads;
+  end if;
+end $$;

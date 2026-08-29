@@ -201,3 +201,22 @@ export interface AdminMemberRow {
   phone: string | null;
   school_name: string | null;
 }
+
+export interface MessageThread {
+  id: string;
+  user_id: string;
+  admin_id: string;
+  user_last_read_at: string | null;
+  admin_last_read_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Message {
+  id: string;
+  thread_id: string;
+  sender_id: string | null;
+  sender_role: "user" | "admin";
+  content: string;
+  created_at: string;
+}

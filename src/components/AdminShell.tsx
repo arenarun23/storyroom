@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { SUPER_ADMIN_EMAIL } from "@/lib/roles";
+import MessageWidget from "@/components/MessageWidget";
 
 interface AdminShellProps {
   email: string;
@@ -107,6 +108,8 @@ export default function AdminShell({ email, children }: AdminShellProps) {
 
         <main className="flex-1 p-4 md:p-8">{children}</main>
       </div>
+
+      <MessageWidget />
     </div>
   );
 }
