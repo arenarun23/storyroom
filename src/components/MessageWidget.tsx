@@ -257,9 +257,9 @@ export default function MessageWidget() {
                           type="button"
                           onClick={() => handleDeleteMessage(m.id)}
                           aria-label="메시지 삭제"
-                          className="shrink-0 text-muted hover:text-danger"
+                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-line bg-card text-xs text-muted transition-colors duration-150 hover:border-danger hover:bg-danger hover:text-white"
                         >
-                          <span className="text-xs">×</span>
+                          ×
                         </button>
                       )}
                       <div
@@ -274,9 +274,9 @@ export default function MessageWidget() {
                           type="button"
                           onClick={() => handleDeleteMessage(m.id)}
                           aria-label="메시지 삭제"
-                          className="shrink-0 text-muted hover:text-danger"
+                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-line bg-card text-xs text-muted transition-colors duration-150 hover:border-danger hover:bg-danger hover:text-white"
                         >
-                          <span className="text-xs">×</span>
+                          ×
                         </button>
                       )}
                     </div>
