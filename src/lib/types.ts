@@ -208,6 +208,7 @@ export interface MessageThread {
   admin_id: string;
   user_last_read_at: string | null;
   admin_last_read_at: string | null;
+  hidden_for_user: boolean;
   created_at: string;
   updated_at: string;
 }

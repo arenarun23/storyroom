@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   deleteMessage,
+  deleteThread,
   getOrCreateThread,
   listAdminsForMessaging,
   listMessages,
@@ -132,6 +133,12 @@ export default function MessageWidget() {
     refreshThreads();
   }
 
+  async function handleDeleteThread(threadId: string) {
+    if (!window.confirm("이 대화를 목록에서 삭제할까요?")) return;
+    setThreads((prev) => prev.filter((t) => t.id !== threadId));
+    await deleteThread(threadId);
+  }
+
   async function handlePickAdmin(adminId: string) {
     const result = await getOrCreateThread(adminId);
     if (!result.ok) return;
@@ -193,27 +200,43 @@ export default function MessageWidget() {
                   <p className="p-6 text-center text-sm text-muted">대화가 없습니다.</p>
                 ) : (
                   threads.map((t) => (
-                    <button
+                    <div
                       key={t.id}
-                      type="button"
-                      onClick={() => openThread(t.id)}
-                      className="flex w-full flex-col gap-0.5 border-b border-line px-4 py-3 text-left last:border-b-0 hover:bg-teal-soft/30"
+                      className="flex items-stretch border-b border-line last:border-b-0 hover:bg-teal-soft/30"
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-semibold text-ink">
-                          {t.otherName ?? t.otherEmail}
-                        </span>
-                        <span className="ml-auto shrink-0 font-mono text-[11px] text-muted">
-                          {timeAgo(t.lastMessageAt)}
-                        </span>
-                        {t.unreadCount > 0 && (
-                          <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-danger px-1 font-mono text-[10px] font-bold text-white">
-                            {t.unreadCount > 9 ? "9+" : t.unreadCount}
+                      <button
+                        type="button"
+                        onClick={() => openThread(t.id)}
+                        className="flex flex-1 flex-col gap-0.5 px-4 py-3 text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-sm font-semibold text-ink">
+                            {t.otherName ?? t.otherEmail}
                           </span>
-                        )}
-                      </div>
-                      {t.lastMessage && <p className="truncate text-xs text-muted">{t.lastMessage}</p>}
-                    </button>
+                          <span className="ml-auto shrink-0 font-mono text-[11px] text-muted">
+                            {timeAgo(t.lastMessageAt)}
+                          </span>
+                          {t.unreadCount > 0 && (
+                            <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-danger px-1 font-mono text-[10px] font-bold text-white">
+                              {t.unreadCount > 9 ? "9+" : t.unreadCount}
+                            </span>
+                          )}
+                        </div>
+                        {t.lastMessage && <p className="truncate text-xs text-muted">{t.lastMessage}</p>}
+                      </button>
+                      {!isAdminViewer && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteThread(t.id)}
+                          aria-label="대화 삭제"
+                          className="flex w-10 shrink-0 items-center justify-center text-muted hover:text-danger"
+                        >
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full border border-line bg-card text-xs">
+                            ×
+                          </span>
+                        </button>
+                      )}
+                    </div>
                   ))
                 )}
               </div>

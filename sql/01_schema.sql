@@ -304,6 +304,10 @@ create table message_threads (
   admin_id           uuid not null references profiles(id) on delete cascade,
   user_last_read_at  timestamptz,
   admin_last_read_at timestamptz,
+  -- 회원이 대화를 목록에서 지우면(메시지가 있는 경우) 실제로는 지우지
+  -- 않고 이 플래그만 켜서 회원 본인 목록에서만 숨긴다. 관리자 목록에는
+  -- 계속 남는다.
+  hidden_for_user    boolean not null default false,
   created_at         timestamptz not null default now(),
   updated_at         timestamptz not null default now(),
   unique (user_id, admin_id)
@@ -1338,10 +1342,16 @@ create policy login_history_select on login_history for select to authenticated
   using (exists (select 1 from profiles where id = auth.uid() and role = 'super_admin'));
 
 -- message_threads: 스레드 당사자(회원 본인 또는 지정된 관리자)만 조회.
--- 생성은 회원만(관리자 목록 중에서 골라야 하므로 admin_id가 실제 관리자여야
--- 함), 수정은 읽음 시각 갱신 용도로 당사자에게 허용(보호 컬럼은 트리거가 차단).
+-- 회원이 숨긴(hidden_for_user) 대화는 관리자에게는 계속 보이고 회원
+-- 본인에게만 안 보인다. 생성은 회원만(관리자 목록 중에서 골라야 하므로
+-- admin_id가 실제 관리자여야 함), 수정은 읽음 시각·숨김 갱신 용도로
+-- 당사자에게 허용(보호 컬럼은 트리거가 차단). 완전 삭제는 메시지가
+-- 하나도 없는 빈 대화를 지울 때만 서버 액션에서 사용한다.
 create policy message_threads_select on message_threads for select to authenticated
-  using (user_id = auth.uid() or admin_id = auth.uid());
+  using (
+    admin_id = auth.uid()
+    or (user_id = auth.uid() and not hidden_for_user)
+  );
 create policy message_threads_insert on message_threads for insert to authenticated
   with check (
     user_id = auth.uid() and is_approved()
@@ -1350,6 +1360,8 @@ create policy message_threads_insert on message_threads for insert to authentica
 create policy message_threads_update on message_threads for update to authenticated
   using (user_id = auth.uid() or admin_id = auth.uid())
   with check (user_id = auth.uid() or admin_id = auth.uid());
+create policy message_threads_delete on message_threads for delete to authenticated
+  using (user_id = auth.uid() or admin_id = auth.uid());
 
 -- messages: 스레드 당사자만 조회/작성. sender_role은 실제 보낸 쪽과
 -- 일치해야만 저장 가능(다른 쪽인 척 위장 방지). 회원 쪽에서 숨긴

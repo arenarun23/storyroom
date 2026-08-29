@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { ActionResult, Message, MessageThread } from "@/lib/types";
 
 export interface AdminOption {
@@ -43,14 +44,22 @@ export async function getOrCreateThread(
     return { ok: false, message: "승인 대기 중입니다. 관리자 승인 후 이용할 수 있습니다." };
   }
 
-  const { data: existing } = await supabase
+  // 회원이 숨긴(hidden_for_user) 스레드는 본인 RLS로는 안 보이므로,
+  // 재사용 여부를 정확히 판단하려면 service role로 조회해야 한다.
+  const admin = createAdminClient();
+  const { data: existing } = await admin
     .from("message_threads")
-    .select("id")
+    .select("id, hidden_for_user")
     .eq("user_id", user.id)
     .eq("admin_id", adminId)
     .maybeSingle();
 
-  if (existing) return { ok: true, threadId: existing.id };
+  if (existing) {
+    if (existing.hidden_for_user) {
+      await supabase.from("message_threads").update({ hidden_for_user: false }).eq("id", existing.id);
+    }
+    return { ok: true, threadId: existing.id };
+  }
 
   const { data: created, error } = await supabase
     .from("message_threads")
@@ -60,6 +69,42 @@ export async function getOrCreateThread(
 
   if (error || !created) return { ok: false, message: "대화를 시작하지 못했습니다." };
   return { ok: true, threadId: created.id };
+}
+
+// 회원이 대화를 목록에서 지운다. 메시지가 있으면(관리자 쪽 기록 보존을
+// 위해) 실제로 지우지 않고 본인 목록에서만 숨기고, 메시지가 하나도
+// 없는 빈 대화만 완전히 삭제한다. 관리자는 아직 이 경로로 지울 수 없다.
+export async function deleteThread(threadId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "로그인이 필요합니다." };
+
+  const { data: thread } = await supabase
+    .from("message_threads")
+    .select("user_id")
+    .eq("id", threadId)
+    .single();
+  if (!thread) return { ok: false, message: "대화를 찾을 수 없습니다." };
+  if (thread.user_id !== user.id) return { ok: false, message: "삭제할 수 없습니다." };
+
+  const admin = createAdminClient();
+  const { count } = await admin
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("thread_id", threadId);
+
+  if (!count) {
+    const { error } = await supabase.from("message_threads").delete().eq("id", threadId);
+    if (error) return { ok: false, message: "삭제에 실패했습니다." };
+    return { ok: true };
+  }
+
+  const { error } = await supabase.from("message_threads").update({ hidden_for_user: true }).eq("id", threadId);
+  if (error) return { ok: false, message: "삭제에 실패했습니다." };
+  return { ok: true };
 }
 
 export interface ThreadSummary {
