@@ -218,5 +218,6 @@ export interface Message {
   sender_id: string | null;
   sender_role: "user" | "admin";
   content: string;
+  hidden_for_user: boolean;
   created_at: string;
 }

@@ -178,6 +178,47 @@ export async function sendMessage(threadId: string, content: string): Promise<Ac
   return { ok: true };
 }
 
+// 대화 당사자는 본인이 보낸 메시지든 상대가 보낸 메시지든 지울 수 있다.
+// 다만 회원(관리자가 아닌 쪽)이 지우면 실제로는 지우지 않고
+// hidden_for_user만 켜서 회원 본인 화면에서만 숨기고 관리자 쪽 기록은
+// 남긴다. 지우려는 메시지 내용이 비어 있으면 보존할 게 없으므로 완전히
+// 삭제한다. 관리자가 지울 때는 항상 완전히 삭제한다.
+export async function deleteMessage(messageId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "로그인이 필요합니다." };
+
+  const { data: msg } = await supabase
+    .from("messages")
+    .select("content, thread_id")
+    .eq("id", messageId)
+    .single();
+  if (!msg) return { ok: false, message: "메시지를 찾을 수 없습니다." };
+
+  const { data: thread } = await supabase
+    .from("message_threads")
+    .select("user_id")
+    .eq("id", msg.thread_id)
+    .single();
+  if (!thread) return { ok: false, message: "대화를 찾을 수 없습니다." };
+
+  const isUserActor = thread.user_id === user.id;
+  const isBlank = msg.content.trim().length === 0;
+
+  if (!isUserActor || isBlank) {
+    const { error } = await supabase.from("messages").delete().eq("id", messageId);
+    if (error) return { ok: false, message: "삭제에 실패했습니다." };
+    return { ok: true };
+  }
+
+  const { error } = await supabase.from("messages").update({ hidden_for_user: true }).eq("id", messageId);
+  if (error) return { ok: false, message: "삭제에 실패했습니다." };
+  return { ok: true };
+}
+
 export async function markThreadRead(threadId: string): Promise<void> {
   const supabase = await createClient();
 

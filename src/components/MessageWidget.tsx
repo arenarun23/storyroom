@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
+  deleteMessage,
   getOrCreateThread,
   listAdminsForMessaging,
   listMessages,
@@ -33,6 +34,7 @@ export default function MessageWidget() {
   const [view, setView] = useState<View>("list");
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [admins, setAdmins] = useState<AdminOption[]>([]);
+  const [adminsLoading, setAdminsLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -97,6 +99,12 @@ export default function MessageWidget() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_threads" }, () => {
         refreshThreads();
       })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, (payload) => {
+        const row = payload.old as Partial<Message>;
+        if (!row.id) return;
+        refreshThreads();
+        setMessages((prev) => prev.filter((m) => m.id !== row.id));
+      })
       .subscribe();
 
     return () => {
@@ -111,9 +119,17 @@ export default function MessageWidget() {
   async function handleOpenCompose() {
     setView("compose");
     if (admins.length === 0) {
+      setAdminsLoading(true);
       const list = await listAdminsForMessaging();
       setAdmins(list);
+      setAdminsLoading(false);
     }
+  }
+
+  async function handleDeleteMessage(messageId: string) {
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    await deleteMessage(messageId);
+    refreshThreads();
   }
 
   async function handlePickAdmin(adminId: string) {
@@ -206,7 +222,9 @@ export default function MessageWidget() {
 
           {view === "compose" && (
             <div className="flex-1 overflow-y-auto">
-              {admins.length === 0 ? (
+              {adminsLoading ? (
+                <p className="p-6 text-center text-sm text-muted">잠시만 기다려 주세요.</p>
+              ) : admins.length === 0 ? (
                 <p className="p-6 text-center text-sm text-muted">문의 가능한 관리자가 없습니다.</p>
               ) : (
                 admins.map((a) => (
@@ -230,7 +248,20 @@ export default function MessageWidget() {
                 {messages.map((m) => {
                   const mine = m.sender_id === myId;
                   return (
-                    <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                    <div
+                      key={m.id}
+                      className={`flex items-end gap-1.5 ${mine ? "justify-end" : "justify-start"}`}
+                    >
+                      {mine && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteMessage(m.id)}
+                          aria-label="메시지 삭제"
+                          className="shrink-0 text-muted hover:text-danger"
+                        >
+                          <span className="text-xs">×</span>
+                        </button>
+                      )}
                       <div
                         className={`max-w-[75%] rounded-[12px] px-3 py-2 text-sm ${
                           mine ? "bg-teal text-white" : "bg-paper text-ink"
@@ -238,6 +269,16 @@ export default function MessageWidget() {
                       >
                         {m.content}
                       </div>
+                      {!mine && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteMessage(m.id)}
+                          aria-label="메시지 삭제"
+                          className="shrink-0 text-muted hover:text-danger"
+                        >
+                          <span className="text-xs">×</span>
+                        </button>
+                      )}
                     </div>
                   );
                 })}

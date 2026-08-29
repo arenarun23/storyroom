@@ -74,6 +74,7 @@ drop function if exists handle_new_user() cascade;
 drop function if exists trg_guard_profile_fn() cascade;
 drop function if exists trg_guard_message_thread_fn() cascade;
 drop function if exists trg_messages_touch_thread_fn() cascade;
+drop function if exists trg_guard_message_fn() cascade;
 drop function if exists trg_block_self_like_fn() cascade;
 drop function if exists trg_validate_video_fn() cascade;
 drop function if exists trg_validate_comment_fn() cascade;
@@ -317,6 +318,10 @@ create table messages (
   sender_id   uuid references profiles(id) on delete set null,
   sender_role text not null check (sender_role in ('user','admin')),
   content     text not null,
+  -- 회원이 메시지를 지우면 실제로는 지우지 않고 회원 본인 화면에서만
+  -- 숨긴다(관리자는 계속 볼 수 있음). 내용이 빈 메시지일 때만 예외적으로
+  -- 완전히 삭제한다.
+  hidden_for_user boolean not null default false,
   created_at  timestamptz not null default now()
 );
 
@@ -1004,6 +1009,32 @@ create trigger trg_messages_touch_thread
 after insert on messages
 for each row execute function trg_messages_touch_thread_fn();
 
+-- 메시지 내용/발신자 정보는 수정할 수 없다. 회원이 본인 화면에서 숨길
+-- 때 쓰는 hidden_for_user만 예외로 허용한다.
+create function trg_guard_message_fn() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if (
+    new.content is distinct from old.content
+    or new.sender_id is distinct from old.sender_id
+    or new.sender_role is distinct from old.sender_role
+    or new.thread_id is distinct from old.thread_id
+  ) then
+    if not (
+      coalesce(auth.role(), 'service_role') = 'service_role'
+      or coalesce(current_setting('app.internal_write', true), 'off') = 'on'
+    ) then
+      raise exception '보호된 컬럼은 직접 수정할 수 없습니다.';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_guard_message
+before update on messages
+for each row execute function trg_guard_message_fn();
+
 -- trg_block_self_like: 자가 좋아요 차단 + 최근활동일 갱신
 create function trg_block_self_like_fn() returns trigger
 language plpgsql security definer set search_path = public as $$
@@ -1321,12 +1352,18 @@ create policy message_threads_update on message_threads for update to authentica
   with check (user_id = auth.uid() or admin_id = auth.uid());
 
 -- messages: 스레드 당사자만 조회/작성. sender_role은 실제 보낸 쪽과
--- 일치해야만 저장 가능(다른 쪽인 척 위장 방지).
+-- 일치해야만 저장 가능(다른 쪽인 척 위장 방지). 회원 쪽에서 숨긴
+-- (hidden_for_user) 메시지는 관리자에게는 계속 보이고 회원 본인에게만
+-- 안 보인다.
 create policy messages_select on messages for select to authenticated
   using (
     exists (
       select 1 from message_threads t
-      where t.id = messages.thread_id and (t.user_id = auth.uid() or t.admin_id = auth.uid())
+      where t.id = messages.thread_id
+        and (
+          t.admin_id = auth.uid()
+          or (t.user_id = auth.uid() and not messages.hidden_for_user)
+        )
     )
   );
 create policy messages_insert on messages for insert to authenticated
@@ -1339,6 +1376,33 @@ create policy messages_insert on messages for insert to authenticated
           (t.user_id = auth.uid() and sender_role = 'user')
           or (t.admin_id = auth.uid() and sender_role = 'admin')
         )
+    )
+  );
+
+-- 회원 본인만 hidden_for_user를 켤 수 있다(본인 화면에서 숨기는 용도).
+-- 다른 컬럼은 트리거가 보호한다.
+create policy messages_update on messages for update to authenticated
+  using (
+    exists (
+      select 1 from message_threads t
+      where t.id = messages.thread_id and t.user_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from message_threads t
+      where t.id = messages.thread_id and t.user_id = auth.uid()
+    )
+  );
+
+-- 완전 삭제(DELETE)는 관리자가 지울 때, 또는 내용이 빈 메시지를 지울
+-- 때만 서버 액션에서 사용한다. 회원이 내용 있는 메시지를 지울 때는
+-- UPDATE(hidden_for_user)로 처리해 관리자 쪽 기록은 남긴다.
+create policy messages_delete on messages for delete to authenticated
+  using (
+    exists (
+      select 1 from message_threads t
+      where t.id = messages.thread_id and (t.user_id = auth.uid() or t.admin_id = auth.uid())
     )
   );
 
