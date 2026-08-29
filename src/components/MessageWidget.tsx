@@ -271,19 +271,26 @@ export default function MessageWidget() {
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-label="메시지"
-        className="relative flex h-14 w-14 items-center justify-center rounded-full bg-teal text-2xl text-white shadow-[var(--shadow-s3)] transition-transform duration-150 hover:bg-teal-deep active:scale-95"
-      >
-        💬
-        {unreadTotal > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 font-mono text-[11px] font-bold text-white">
-            {unreadTotal > 9 ? "9+" : unreadTotal}
-          </span>
+      <div className="group relative">
+        {!open && !isAdminViewer && (
+          <div className="pointer-events-none absolute bottom-full right-0 mb-2 w-56 rounded-[10px] border border-line bg-card px-3 py-2 text-xs text-ink opacity-0 shadow-[var(--shadow-s2)] transition-opacity duration-150 group-hover:opacity-100">
+            문의사항이나 요청할 내용이 있으면 원하는 관리자에게 메세지를 보내주세요.
+          </div>
         )}
-      </button>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-label="메시지"
+          className="relative flex h-14 w-14 items-center justify-center rounded-full bg-teal text-2xl text-white shadow-[var(--shadow-s3)] transition-transform duration-150 hover:bg-teal-deep active:scale-95"
+        >
+          💬
+          {unreadTotal > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 font-mono text-[11px] font-bold text-white">
+              {unreadTotal > 9 ? "9+" : unreadTotal}
+            </span>
+          )}
+        </button>
+      </div>
     </div>
   );
 }
