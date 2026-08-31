@@ -61,7 +61,7 @@ export default function AdminShell({ email, children }: AdminShellProps) {
       </aside>
 
       <div className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-line bg-card px-4 py-3 md:px-8">
+        <header className="flex items-center border-b border-line bg-card px-4 py-3 md:px-8">
           <nav className="flex gap-1 overflow-x-auto md:hidden">
             {navItems.map((item) => (
               <Link
@@ -75,7 +75,7 @@ export default function AdminShell({ email, children }: AdminShellProps) {
               </Link>
             ))}
           </nav>
-          <div className="flex items-center gap-3">
+          <div className="ml-auto flex shrink-0 items-center gap-3">
             <NotificationBell />
             <Link
               href="/me"
@@ -98,14 +98,14 @@ export default function AdminShell({ email, children }: AdminShellProps) {
               </svg>
             </Link>
             <span className="hidden text-xs text-muted md:inline">{email}</span>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="shrink-0 rounded-[10px] border border-line px-3 py-1.5 text-xs font-medium text-muted transition-colors duration-150 hover:bg-teal-soft hover:text-teal-deep active:scale-95"
+            >
+              로그아웃
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="rounded-[10px] border border-line px-3 py-1.5 text-xs font-medium text-muted transition-colors duration-150 hover:bg-teal-soft hover:text-teal-deep active:scale-95"
-          >
-            로그아웃
-          </button>
         </header>
 
         <main className="flex-1 p-4 md:p-8">{children}</main>
