@@ -22,8 +22,10 @@ export interface AdminVideoRow {
   status: "active" | "pending" | "rejected" | "deleted" | "withdrawn" | "reset";
   is_flagged: boolean;
   created_at: string;
+  reviewed_at: string | null;
   owner: { display_name: string | null; email: string } | null;
   reassigned_to: { display_name: string | null; email: string } | null;
+  reviewer: { display_name: string | null; email: string } | null;
 }
 
 export interface AdminMemberOption {
@@ -271,6 +273,13 @@ function VideoCard({
           : (v.owner?.display_name ?? (v.owner_id ? "이름 없음" : "탈퇴한 회원"))}
         {v.owner?.email && <span className="ml-1 font-normal text-muted">({v.owner.email})</span>}
       </p>
+
+      {v.reviewer && (v.status === "active" || v.status === "rejected") && (
+        <p className="text-xs text-muted">
+          {v.status === "active" ? "승인" : "거절"}: {v.reviewer.display_name ?? v.reviewer.email}
+          {v.reviewed_at && ` · ${formatDateKST(v.reviewed_at)}`}
+        </p>
+      )}
 
       {editing ? (
         <div className="flex flex-col gap-2 rounded-[10px] border border-line bg-paper p-3 sm:flex-row sm:items-start">

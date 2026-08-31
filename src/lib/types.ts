@@ -130,7 +130,7 @@ export interface Comment {
   profiles: { display_name: string | null } | null;
 }
 
-export type NotificationType = "promotion" | "demotion" | "expiry_warning" | "ai_comment" | "approval";
+export type NotificationType = "promotion" | "demotion" | "expiry_warning" | "ai_comment" | "approval" | "review_request";
 
 export interface Notification {
   id: string;

@@ -452,7 +452,13 @@ export async function adminSetVideoStatus(
 
   const { data: before } = await client.from("videos").select("status").eq("id", videoId).single();
 
-  const { error } = await client.from("videos").update({ status }).eq("id", videoId);
+  const update: Record<string, unknown> = { status };
+  if (status === "active" || status === "rejected") {
+    update.reviewed_by = admin.id;
+    update.reviewed_at = new Date().toISOString();
+  }
+
+  const { error } = await client.from("videos").update(update).eq("id", videoId);
   if (error) return { ok: false, message: "처리에 실패했습니다." };
 
   const actionName = status === "active" ? "approve_video" : status === "rejected" ? "reject_video" : "delete_video";
@@ -479,7 +485,13 @@ export async function adminSetBlogPostStatus(
 
   const { data: before } = await client.from("blog_posts").select("status").eq("id", postId).single();
 
-  const { error } = await client.from("blog_posts").update({ status }).eq("id", postId);
+  const update: Record<string, unknown> = { status };
+  if (status === "active" || status === "rejected") {
+    update.reviewed_by = admin.id;
+    update.reviewed_at = new Date().toISOString();
+  }
+
+  const { error } = await client.from("blog_posts").update(update).eq("id", postId);
   if (error) return { ok: false, message: "처리에 실패했습니다." };
 
   const actionName =

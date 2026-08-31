@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { SUPER_ADMIN_EMAIL } from "@/lib/roles";
 import MessageWidget from "@/components/MessageWidget";
+import NotificationBell from "@/components/NotificationBell";
 
 interface AdminShellProps {
   email: string;
@@ -75,6 +76,7 @@ export default function AdminShell({ email, children }: AdminShellProps) {
             ))}
           </nav>
           <div className="flex items-center gap-3">
+            <NotificationBell />
             <Link
               href="/me"
               title="일반 페이지로 이동"

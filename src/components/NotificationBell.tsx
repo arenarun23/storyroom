@@ -11,6 +11,7 @@ const TYPE_ICON: Record<Notification["type"], string> = {
   expiry_warning: "⏰",
   ai_comment: "🤖",
   approval: "✅",
+  review_request: "📝",
 };
 
 // FR-801~804: 승급·강등·만료임박·승인 알림 + 미읽음 표시

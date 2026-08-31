@@ -75,6 +75,8 @@ drop function if exists trg_guard_profile_fn() cascade;
 drop function if exists trg_guard_message_thread_fn() cascade;
 drop function if exists trg_messages_touch_thread_fn() cascade;
 drop function if exists trg_guard_message_fn() cascade;
+drop function if exists trg_video_review_alert_fn() cascade;
+drop function if exists trg_blog_post_review_alert_fn() cascade;
 drop function if exists trg_block_self_like_fn() cascade;
 drop function if exists trg_validate_video_fn() cascade;
 drop function if exists trg_validate_comment_fn() cascade;
@@ -152,6 +154,9 @@ create table videos (
   is_flagged      boolean not null default false,
   status          text not null default 'active' check (status in ('active','pending','rejected','deleted','withdrawn','reset')),
   reassigned_to_id uuid references profiles(id) on delete set null,
+  -- 어떤 관리자가 승인/거절했는지 기록(§ 승인 요청 알림).
+  reviewed_by     uuid references profiles(id) on delete set null,
+  reviewed_at     timestamptz,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
@@ -169,6 +174,8 @@ create table blog_posts (
   url         text not null,
   url_key     text not null unique,
   status      text not null default 'pending' check (status in ('active','pending','rejected','deleted','withdrawn')),
+  reviewed_by uuid references profiles(id) on delete set null,
+  reviewed_at timestamptz,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -262,7 +269,7 @@ create index idx_level_history_user on level_history(user_id, created_at desc);
 create table notifications (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null references profiles(id) on delete cascade,
-  type       text not null check (type in ('promotion','demotion','expiry_warning','ai_comment','approval')),
+  type       text not null check (type in ('promotion','demotion','expiry_warning','ai_comment','approval','review_request')),
   title      text not null,
   body       text,
   is_read    boolean not null default false,
@@ -1110,6 +1117,47 @@ for each row execute function set_updated_at();
 create trigger trg_blog_posts_set_updated_at
 before update on blog_posts
 for each row execute function set_updated_at();
+
+-- 새로 등록된 유튜브 영상이 승인 대기(pending) 상태로 들어오면 모든
+-- 활성 관리자에게 승인 요청 알림을 보낸다(스토리룸 영상은 바로 active라
+-- 해당 없음).
+create function trg_video_review_alert_fn() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'pending' then
+    insert into notifications (user_id, type, title, body)
+    select p.id, 'review_request', '유튜브 영상 승인 요청',
+           coalesce(new.title, '제목 없음') || ' 영상이 승인 대기 중입니다.'
+    from profiles p
+    where p.role in ('admin', 'super_admin') and p.status = 'active';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_video_review_alert
+after insert on videos
+for each row execute function trg_video_review_alert_fn();
+
+-- 새로 등록된 블로그 게시물(항상 pending으로 시작)도 동일하게 관리자에게
+-- 승인 요청 알림을 보낸다.
+create function trg_blog_post_review_alert_fn() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'pending' then
+    insert into notifications (user_id, type, title, body)
+    select p.id, 'review_request', '블로그 게시물 승인 요청',
+           coalesce(new.title, '제목 없음') || ' 게시물이 승인 대기 중입니다.'
+    from profiles p
+    where p.role in ('admin', 'super_admin') and p.status = 'active';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_blog_post_review_alert
+after insert on blog_posts
+for each row execute function trg_blog_post_review_alert_fn();
 
 -- admin_reassign_video: 거절/삭제된 영상을 다른 사용자 계정으로 재배정해 승인한다.
 -- 원본 기록은 남기되(status='reset') 식별정보(소유자/제목/url)를 비워 url_key

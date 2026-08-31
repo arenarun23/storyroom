@@ -12,7 +12,9 @@ export interface AdminBlogPostRow {
   url: string | null;
   status: "active" | "pending" | "rejected" | "deleted" | "withdrawn";
   created_at: string;
+  reviewed_at: string | null;
   owner: { display_name: string | null; email: string } | null;
+  reviewer: { display_name: string | null; email: string } | null;
 }
 
 const STATUS_LABELS: Record<AdminBlogPostRow["status"], string> = {
@@ -104,6 +106,13 @@ export default function BlogReviewClient({ posts }: { posts: AdminBlogPostRow[] 
                   {p.owner?.display_name ?? (p.owner_id ? "이름 없음" : "탈퇴한 회원")}
                   {p.owner?.email && <span className="ml-1 font-normal text-muted">({p.owner.email})</span>}
                 </p>
+
+                {p.reviewer && (p.status === "active" || p.status === "rejected") && (
+                  <p className="text-xs text-muted">
+                    {p.status === "active" ? "승인" : "거절"}: {p.reviewer.display_name ?? p.reviewer.email}
+                    {p.reviewed_at && ` · ${formatDateKST(p.reviewed_at)}`}
+                  </p>
+                )}
 
                 {p.title && <p className="text-sm text-ink">{p.title}</p>}
                 {p.url && (
