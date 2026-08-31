@@ -47,7 +47,7 @@ export default function BlogReviewClient({ posts }: { posts: AdminBlogPostRow[] 
 
   const filtered = posts.filter((p) => !statusFilter || p.status === statusFilter);
 
-  function handleSetStatus(postId: string, status: "active" | "deleted" | "rejected") {
+  function handleSetStatus(postId: string, status: "active" | "deleted" | "rejected" | "pending") {
     setBusyId(postId);
     adminSetBlogPostStatus(postId, status).finally(() => {
       setBusyId(null);
@@ -147,14 +147,24 @@ export default function BlogReviewClient({ posts }: { posts: AdminBlogPostRow[] 
                       </button>
                     </>
                   ) : p.status === "active" ? (
-                    <button
-                      type="button"
-                      disabled={busyId !== null}
-                      onClick={() => handleSetStatus(p.id, "deleted")}
-                      className="chip border border-line px-3 text-[11px] font-semibold text-danger transition-colors duration-150 hover:bg-danger hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-50"
-                    >
-                      {busy ? "처리 중..." : "삭제"}
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        disabled={busyId !== null}
+                        onClick={() => handleSetStatus(p.id, "deleted")}
+                        className="chip border border-line px-3 text-[11px] font-semibold text-danger transition-colors duration-150 hover:bg-danger hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        {busy ? "처리 중..." : "삭제"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyId !== null}
+                        onClick={() => handleSetStatus(p.id, "pending")}
+                        className="chip border border-line px-3 text-[11px] font-semibold text-gold transition-colors duration-150 hover:bg-gold-soft active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        {busy ? "처리 중..." : "승인취소"}
+                      </button>
+                    </>
                   ) : (
                     (p.status === "deleted" || p.status === "rejected") && (
                       <button

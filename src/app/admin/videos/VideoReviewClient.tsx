@@ -79,7 +79,7 @@ export default function VideoReviewClient({
     return true;
   });
 
-  function handleSetStatus(videoId: string, status: "active" | "deleted" | "rejected") {
+  function handleSetStatus(videoId: string, status: "active" | "deleted" | "rejected" | "pending") {
     setBusyId(videoId);
     adminSetVideoStatus(videoId, status).finally(() => {
       setBusyId(null);
@@ -183,7 +183,7 @@ function VideoCard({
   reassignTarget: string;
   onToggleReassign: () => void;
   onReassignTargetChange: (v: string) => void;
-  onSetStatus: (status: "active" | "deleted" | "rejected") => void;
+  onSetStatus: (status: "active" | "deleted" | "rejected" | "pending") => void;
   onReassign: () => void;
   onResetOnly: () => void;
 }) {
@@ -358,14 +358,26 @@ function VideoCard({
           )}
 
           {v.status === "active" ? (
-            <button
-              type="button"
-              disabled={busyId !== null}
-              onClick={() => onSetStatus("deleted")}
-              className="chip border border-line px-3 text-[11px] font-semibold text-danger transition-colors duration-150 hover:bg-danger hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-50"
-            >
-              {busy ? "처리 중..." : "삭제"}
-            </button>
+            <>
+              <button
+                type="button"
+                disabled={busyId !== null}
+                onClick={() => onSetStatus("deleted")}
+                className="chip border border-line px-3 text-[11px] font-semibold text-danger transition-colors duration-150 hover:bg-danger hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+              >
+                {busy ? "처리 중..." : "삭제"}
+              </button>
+              {v.platform === "youtube" && (
+                <button
+                  type="button"
+                  disabled={busyId !== null}
+                  onClick={() => onSetStatus("pending")}
+                  className="chip border border-line px-3 text-[11px] font-semibold text-gold transition-colors duration-150 hover:bg-gold-soft active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {busy ? "처리 중..." : "승인취소"}
+                </button>
+              )}
+            </>
           ) : v.status === "pending" ? (
             <>
               <button

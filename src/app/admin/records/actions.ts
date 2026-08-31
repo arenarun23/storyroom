@@ -445,7 +445,7 @@ export async function adminSetPassword(memberId: string, newPassword: string): P
 // 재검사를 건너뛰고 재승인이 그대로 적용된다.
 export async function adminSetVideoStatus(
   videoId: string,
-  status: "active" | "deleted" | "rejected",
+  status: "active" | "deleted" | "rejected" | "pending",
 ): Promise<ActionResult> {
   const admin = await requireAdmin();
   const client = createAdminClient();
@@ -456,12 +456,23 @@ export async function adminSetVideoStatus(
   if (status === "active" || status === "rejected") {
     update.reviewed_by = admin.id;
     update.reviewed_at = new Date().toISOString();
+  } else if (status === "pending") {
+    // 승인취소: 다시 검토 대기 상태로 되돌리므로 검토 기록도 지운다.
+    update.reviewed_by = null;
+    update.reviewed_at = null;
   }
 
   const { error } = await client.from("videos").update(update).eq("id", videoId);
   if (error) return { ok: false, message: "처리에 실패했습니다." };
 
-  const actionName = status === "active" ? "approve_video" : status === "rejected" ? "reject_video" : "delete_video";
+  const actionName =
+    status === "active"
+      ? "approve_video"
+      : status === "rejected"
+        ? "reject_video"
+        : status === "pending"
+          ? "cancel_approval_video"
+          : "delete_video";
   await client.from("audit_log").insert({
     admin_id: admin.id,
     action: actionName,
@@ -478,7 +489,7 @@ export async function adminSetVideoStatus(
 // 스토리룸 홍보 블로그 게시물 승인/거절/삭제. 영상 검토와 동일한 패턴.
 export async function adminSetBlogPostStatus(
   postId: string,
-  status: "active" | "deleted" | "rejected",
+  status: "active" | "deleted" | "rejected" | "pending",
 ): Promise<ActionResult> {
   const admin = await requireAdmin();
   const client = createAdminClient();
@@ -489,13 +500,22 @@ export async function adminSetBlogPostStatus(
   if (status === "active" || status === "rejected") {
     update.reviewed_by = admin.id;
     update.reviewed_at = new Date().toISOString();
+  } else if (status === "pending") {
+    update.reviewed_by = null;
+    update.reviewed_at = null;
   }
 
   const { error } = await client.from("blog_posts").update(update).eq("id", postId);
   if (error) return { ok: false, message: "처리에 실패했습니다." };
 
   const actionName =
-    status === "active" ? "approve_blog_post" : status === "rejected" ? "reject_blog_post" : "delete_blog_post";
+    status === "active"
+      ? "approve_blog_post"
+      : status === "rejected"
+        ? "reject_blog_post"
+        : status === "pending"
+          ? "cancel_approval_blog_post"
+          : "delete_blog_post";
   await client.from("audit_log").insert({
     admin_id: admin.id,
     action: actionName,
