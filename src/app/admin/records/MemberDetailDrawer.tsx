@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  adminClearManualOverride,
+  adminForceReevaluate,
   adminReassignVideo,
   adminReleaseCooldown,
   adminResetVideo,
@@ -373,16 +373,24 @@ function BasicInfoTab({
           {label("level", "등급 적용")}
         </button>
 
-        {member.manual_override && (
+        <div className="flex flex-col gap-1">
           <button
             type="button"
             disabled={pending}
-            onClick={() => run("clearOverride", () => adminClearManualOverride(member.id))}
+            onClick={() => run("clearOverride", () => adminForceReevaluate(member.id))}
             className={secondaryBtn}
           >
-            {label("clearOverride", "수동조정 해제 (자동 판정으로 복귀)")}
+            {label(
+              "clearOverride",
+              member.manual_override ? "등급 자동 조정 (수동 조정 해제)" : "지금 재판정 (업로드 기록 기준)",
+            )}
           </button>
-        )}
+          <p className="text-[11px] text-muted">
+            {member.manual_override
+              ? "수동 조정(등급 또는 유지 만료일 직접 지정)을 해제하고, 업로드 기록 기준으로 등급과 유지 만료일을 즉시 다시 계산합니다."
+              : "업로드 기록 기준으로 등급과 유지 만료일을 지금 다시 계산합니다."}
+          </p>
+        </div>
 
         {isCoolingDown && (
           <button

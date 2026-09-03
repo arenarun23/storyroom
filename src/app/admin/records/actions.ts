@@ -195,18 +195,45 @@ export async function adminSetLevel(memberId: string, toLevel: string, reason: s
   return { ok: true };
 }
 
-export async function adminClearManualOverride(memberId: string): Promise<ActionResult> {
+// 수동 조정(등급 강제 지정 또는 유지 만료일 직접 지정)을 해제하고, 실제
+// 업로드 기록(지표) 기준으로 등급·유지 만료일을 즉시 다시 계산한다.
+// manual_override가 이미 false인 회원(예: 예전에 플래그만 꺼졌고 값은
+// 재계산되지 않은 경우)에도 그대로 재판정만 실행되도록 항상 호출 가능하다.
+// apply_reevaluation은 manual_override가 false여야 동작하므로, 켜져
+// 있으면 먼저 끈 뒤에 호출한다(순서 중요).
+export async function adminForceReevaluate(memberId: string): Promise<ActionResult> {
   const admin = await requireAdmin();
   const client = createAdminClient();
 
-  const { error } = await client.from("profiles").update({ manual_override: false }).eq("id", memberId);
-  if (error) return { ok: false, message: "처리에 실패했습니다." };
+  const { data: before } = await client
+    .from("profiles")
+    .select("current_level, level_expires_at, manual_override")
+    .eq("id", memberId)
+    .single();
+
+  if (before?.manual_override) {
+    const { error } = await client.from("profiles").update({ manual_override: false }).eq("id", memberId);
+    if (error) return { ok: false, message: "처리에 실패했습니다." };
+  }
+
+  const { error: reevalError } = await client.rpc("apply_reevaluation", { p_user: memberId });
+  if (reevalError) {
+    return { ok: false, message: "재판정에 실패했습니다." };
+  }
+
+  const { data: after } = await client
+    .from("profiles")
+    .select("current_level, level_expires_at, manual_override")
+    .eq("id", memberId)
+    .single();
 
   await client.from("audit_log").insert({
     admin_id: admin.id,
-    action: "clear_manual_override",
+    action: "force_reevaluate",
     target_table: "profiles",
     target_id: memberId,
+    before,
+    after,
   });
 
   revalidatePath("/admin/records");
