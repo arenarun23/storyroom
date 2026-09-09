@@ -71,7 +71,16 @@ export async function proxy(request: NextRequest) {
   // 여부와 무관하게 필수 정보가 빌 때마다 계속 적용된다. 로그인/온보딩 자체
   // 경로만 예외로 둔다.
   const isOnboardingPath = pathname === "/onboarding";
-  const ONBOARDING_EXEMPT = new Set(["/", "/login", "/admin/login", "/auth/callback", "/onboarding"]);
+  // 약관·개인정보 페이지는 온보딩 미완료 상태에서도 읽을 수 있어야 한다.
+  const ONBOARDING_EXEMPT = new Set([
+    "/",
+    "/login",
+    "/admin/login",
+    "/auth/callback",
+    "/onboarding",
+    "/terms",
+    "/privacy",
+  ]);
 
   if (!isAuthed && isOnboardingPath) {
     return NextResponse.redirect(new URL("/login", request.url));
