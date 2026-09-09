@@ -245,7 +245,15 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
         <table className="w-full min-w-[1100px] text-left text-xs">
           <thead>
             <tr className="border-b border-line text-muted">
-              {COLUMNS.map((col) => (
+              <th
+                onClick={() => toggleSort("display_name")}
+                className="cursor-pointer whitespace-nowrap px-3 py-2 font-medium hover:text-ink"
+              >
+                {COLUMNS[0].label}
+                {sortKey === "display_name" && (sortDir === "asc" ? " ▲" : " ▼")}
+              </th>
+              <th className="whitespace-nowrap px-3 py-2 font-medium">지역</th>
+              {COLUMNS.slice(1).map((col) => (
                 <th
                   key={col.key}
                   onClick={() => toggleSort(col.key)}
@@ -268,6 +276,7 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
                   {m.display_name ?? "이름 없음"}
                   {m.manual_override && <span className="ml-1 text-gold">●</span>}
                 </td>
+                <td className="whitespace-nowrap px-3 py-2">{m.region ?? "—"}</td>
                 <td className="whitespace-nowrap px-3 py-2">
                   <LevelPill
                     name={levelName.get(m.current_level) ?? m.current_level}
