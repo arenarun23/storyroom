@@ -71,7 +71,7 @@ export default async function LandingPage() {
     supabase.rpc("public_stats").single(),
     supabase.rpc("public_level_stats"),
     user
-      ? supabase.from("profiles").select("display_name").eq("id", user.id).single()
+      ? supabase.from("profiles").select("display_name, avatar_url").eq("id", user.id).single()
       : Promise.resolve({ data: null }),
   ]);
 
@@ -88,7 +88,7 @@ export default async function LandingPage() {
       <header className="flex items-center justify-between px-6 py-5 sm:px-10">
         <span className="font-title text-lg font-bold text-teal-deep">STORYROOM EDU CERTIFICATION</span>
         {user ? (
-          <LandingAuthHeader displayName={profile?.display_name ?? null} />
+          <LandingAuthHeader displayName={profile?.display_name ?? null} avatarUrl={profile?.avatar_url ?? null} />
         ) : (
           <Link
             href="/login"
