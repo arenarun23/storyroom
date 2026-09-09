@@ -110,10 +110,10 @@ export default async function LandingPage() {
           레벨이 자동으로 부여되고 유지됩니다.
         </p>
         <Link
-          href="/login"
+          href={user ? "/me" : "/login"}
           className="btn flex items-center rounded-[10px] bg-teal px-8 text-base font-semibold text-white shadow-[var(--shadow-s2)]"
         >
-          구글 계정으로 시작하기
+          {user ? "내 정보 수정하기" : "구글 계정으로 시작하기"}
         </Link>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-6">
