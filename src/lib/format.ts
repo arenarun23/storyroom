@@ -96,6 +96,22 @@ export function formatDateTimeKST(iso: string): string {
   return new Date(iso).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
 }
 
+// 관리자 회원관리 테이블처럼 좁은 열에 넣을 때 쓰는 축약형("YY.MM.DD HH:mm", 초 생략·24시간제).
+export function formatDateTimeCompactKST(iso: string): string {
+  const parts = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "2-digit",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(iso));
+
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("year")}.${get("month")}.${get("day")} ${get("hour")}:${get("minute")}`;
+}
+
 export function formatDateKST(iso: string): string {
   return new Date(iso).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" });
 }

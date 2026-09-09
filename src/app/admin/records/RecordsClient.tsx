@@ -7,7 +7,7 @@ import MemberDetailDrawer from "@/app/admin/records/MemberDetailDrawer";
 import CreateMemberDialog from "@/app/admin/records/CreateMemberDialog";
 import {
   formatDateKST,
-  formatDateTimeKST,
+  formatDateTimeCompactKST,
   formatDuration,
   isPast,
   isWithinWarningWindow,
@@ -242,22 +242,22 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
       </div>
 
       <div className="card overflow-x-auto p-0">
-        <table className="w-full min-w-[1100px] text-left text-xs">
+        <table className="w-full min-w-[1100px] text-left text-[11px]">
           <thead>
             <tr className="border-b border-line text-muted">
               <th
                 onClick={() => toggleSort("display_name")}
-                className="cursor-pointer whitespace-nowrap px-3 py-2 font-medium hover:text-ink"
+                className="cursor-pointer whitespace-nowrap px-2 py-1.5 font-medium hover:text-ink"
               >
                 {COLUMNS[0].label}
                 {sortKey === "display_name" && (sortDir === "asc" ? " ▲" : " ▼")}
               </th>
-              <th className="whitespace-nowrap px-3 py-2 font-medium">지역</th>
+              <th className="whitespace-nowrap px-2 py-1.5 font-medium">지역</th>
               {COLUMNS.slice(1).map((col) => (
                 <th
                   key={col.key}
                   onClick={() => toggleSort(col.key)}
-                  className="cursor-pointer whitespace-nowrap px-3 py-2 font-medium hover:text-ink"
+                  className="cursor-pointer whitespace-nowrap px-2 py-1.5 font-medium hover:text-ink"
                 >
                   {col.label}
                   {sortKey === col.key && (sortDir === "asc" ? " ▲" : " ▼")}
@@ -272,35 +272,35 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
                 onClick={() => setSelected(m)}
                 className="cursor-pointer border-b border-line last:border-b-0 hover:bg-teal-soft/40"
               >
-                <td className="whitespace-nowrap px-3 py-2 font-semibold text-ink">
+                <td className="whitespace-nowrap px-2 py-1.5 font-semibold text-ink">
                   {m.display_name ?? "이름 없음"}
                   {m.manual_override && <span className="ml-1 text-gold">●</span>}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2">{m.region ?? "—"}</td>
-                <td className="whitespace-nowrap px-3 py-2">
+                <td className="whitespace-nowrap px-2 py-1.5">{m.region ?? "—"}</td>
+                <td className="whitespace-nowrap px-2 py-1.5">
                   <LevelPill
                     name={levelName.get(m.current_level) ?? m.current_level}
                     orderNo={levelOrder.get(m.current_level) ?? 0}
                     color={levelColor.get(m.current_level)}
                   />
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 font-mono">
-                  {formatDateTimeKST(m.level_updated_at)}
+                <td className="whitespace-nowrap px-2 py-1.5 font-mono">
+                  {formatDateTimeCompactKST(m.level_updated_at)}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 font-mono">
+                <td className="whitespace-nowrap px-2 py-1.5 font-mono">
                   {m.level_expires_at ? formatDateKST(m.level_expires_at) : "—"}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 font-mono">{m.video_count}</td>
-                <td className="whitespace-nowrap px-3 py-2 font-mono">{formatDuration(m.total_duration_min * 60)}</td>
-                <td className="whitespace-nowrap px-3 py-2 font-mono">{m.received_likes}</td>
-                <td className="whitespace-nowrap px-3 py-2 font-mono">{m.received_comments}</td>
-                <td className="whitespace-nowrap px-3 py-2 font-mono">{m.given_likes}</td>
-                <td className="whitespace-nowrap px-3 py-2 font-mono">{m.given_comments}</td>
-                <td className="whitespace-nowrap px-3 py-2 font-mono">{m.yt_views}</td>
-                <td className="whitespace-nowrap px-3 py-2 font-mono">
-                  {formatDateTimeKST(m.last_active_at)}
+                <td className="whitespace-nowrap px-2 py-1.5 font-mono">{m.video_count}</td>
+                <td className="whitespace-nowrap px-2 py-1.5 font-mono">{formatDuration(m.total_duration_min * 60)}</td>
+                <td className="whitespace-nowrap px-2 py-1.5 font-mono">{m.received_likes}</td>
+                <td className="whitespace-nowrap px-2 py-1.5 font-mono">{m.received_comments}</td>
+                <td className="whitespace-nowrap px-2 py-1.5 font-mono">{m.given_likes}</td>
+                <td className="whitespace-nowrap px-2 py-1.5 font-mono">{m.given_comments}</td>
+                <td className="whitespace-nowrap px-2 py-1.5 font-mono">{m.yt_views}</td>
+                <td className="whitespace-nowrap px-2 py-1.5 font-mono">
+                  {formatDateTimeCompactKST(m.last_active_at)}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                <td className="whitespace-nowrap px-2 py-1.5" onClick={(e) => e.stopPropagation()}>
                   <RoleSelect member={m} viewerRole={viewerRole} />
                 </td>
               </tr>
