@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createVideos, deleteVideo, updateVideo } from "@/app/me/actions";
+import { createVideos, deleteVideo, fillMissingOwnerNicknames, updateVideo } from "@/app/me/actions";
 import { extractYouTubeId, formatDuration, parseDuration } from "@/lib/format";
 import type { DurationSource, Video } from "@/lib/types";
 import OutlierBadge from "@/components/OutlierBadge";
@@ -302,10 +302,39 @@ export function VideoRegisterForm({
   );
 }
 
+// 소유 확인용 닉네임이 필요한 영상인지 판단한다. 스토리룸 영상은 등급 무관 항상
+// 필요하고, 유튜브 영상은 등록 폼과 같은 기준(크리에이터만)이라 여기서는 제외한다.
+function needsNickname(video: Video) {
+  return video.platform === "storyroom" && video.status !== "deleted" && !video.owner_nickname?.trim();
+}
+
 export function VideoList({ videos }: { videos: Video[] }) {
+  const missing = videos.filter(needsNickname);
+  const [promptOpen, setPromptOpen] = useState(missing.length > 0);
+
   return (
     <section className="flex flex-col gap-4">
       <h2 className="font-title text-lg font-bold text-ink">내 영상 목록</h2>
+
+      {missing.length > 0 && (
+        <div className="banner flex flex-col gap-2 bg-gold-soft px-4 py-3 text-sm text-gold sm:flex-row sm:items-center sm:justify-between">
+          <span>
+            스토리룸 닉네임이 입력되지 않은 영상이 {missing.length}편 있습니다. 본인 소유 확인을 위해 입력해 주세요.
+          </span>
+          <button
+            type="button"
+            onClick={() => setPromptOpen(true)}
+            className="chip shrink-0 bg-gold px-4 text-xs font-semibold text-white transition-colors duration-150 hover:opacity-90 active:scale-95"
+          >
+            일괄 입력
+          </button>
+        </div>
+      )}
+
+      {promptOpen && missing.length > 0 && (
+        <NicknamePrompt missingCount={missing.length} onClose={() => setPromptOpen(false)} />
+      )}
+
       {videos.length === 0 ? (
         <p className="card p-6 text-center text-sm text-muted">아직 등록한 영상이 없습니다.</p>
       ) : (
@@ -319,15 +348,109 @@ export function VideoList({ videos }: { videos: Video[] }) {
   );
 }
 
+// 닉네임 미입력 영상이 있을 때 목록 위에 뜨는 모달. 한 번 입력하면 비어 있는
+// 스토리룸 영상 전체에 같은 값을 채운다(fillMissingOwnerNicknames).
+function NicknamePrompt({ missingCount, onClose }: { missingCount: number; onClose: () => void }) {
+  const [nickname, setNickname] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  function handleSave() {
+    const value = nickname.trim();
+    if (!value) {
+      setError("스토리룸 닉네임을 입력해 주세요");
+      return;
+    }
+    setError(null);
+    startTransition(async () => {
+      const result = await fillMissingOwnerNicknames(value);
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      onClose();
+      router.refresh();
+    });
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="nickname-prompt-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4"
+    >
+      <div className="card flex w-full max-w-md flex-col gap-4 p-6">
+        <h3 id="nickname-prompt-title" className="font-title text-lg font-bold text-ink">
+          스토리룸 닉네임을 입력해 주세요
+        </h3>
+        <p className="text-sm text-muted">
+          닉네임이 입력되지 않은 영상이 {missingCount}편 있습니다. 아래에 입력하면 해당 영상 전체에 한 번에
+          적용됩니다. 영상마다 다르게 넣어야 하면 목록에서 개별 수정도 가능합니다.
+        </p>
+        <input
+          type="text"
+          value={nickname}
+          onChange={(e) => setNickname(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSave();
+          }}
+          placeholder="스토리룸 닉네임"
+          autoFocus
+          className="input-field px-4 text-sm"
+          aria-label="스토리룸 닉네임"
+        />
+        {error && <p className="text-xs text-danger">{error}</p>}
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="chip border border-line px-4 text-xs font-semibold text-muted transition-colors duration-150 hover:bg-teal-soft hover:text-ink active:scale-95"
+          >
+            나중에
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={pending}
+            className="chip bg-teal px-5 text-xs font-semibold text-white transition-colors duration-150 hover:bg-teal-deep active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+          >
+            {pending ? "저장 중..." : "전체 적용"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function VideoRow({ video }: { video: Video }) {
   const [editing, setEditing] = useState(false);
   const [url, setUrl] = useState(video.url ?? "");
   const [title, setTitle] = useState(video.title ?? "");
   const [titleDraft, setTitleDraft] = useState("");
   const [durationText, setDurationText] = useState(formatDuration(video.duration_sec));
+  const [nickname, setNickname] = useState(video.owner_nickname ?? "");
+  const [nicknameDraft, setNicknameDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+
+  const nicknameMissing = needsNickname(video);
+
+  function handleSaveNickname() {
+    const value = nicknameDraft.trim();
+    if (!value) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await updateVideo(video.id, { ownerNickname: value });
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      router.refresh();
+    });
+  }
 
   function handleSave() {
     setError(null);
@@ -336,9 +459,18 @@ function VideoRow({ video }: { video: Video }) {
       setError("MM:SS 형식으로 입력해 주세요");
       return;
     }
+    if (video.platform === "storyroom" && !nickname.trim()) {
+      setError("스토리룸 닉네임을 입력해 주세요");
+      return;
+    }
 
     startTransition(async () => {
-      const result = await updateVideo(video.id, { url, title: title.trim() || null, durationSec });
+      const result = await updateVideo(video.id, {
+        url,
+        title: title.trim() || null,
+        durationSec,
+        ...(video.platform === "storyroom" ? { ownerNickname: nickname.trim() } : {}),
+      });
       if (!result.ok) {
         setError(result.message);
         return;
@@ -384,6 +516,15 @@ function VideoRow({ video }: { video: Video }) {
             placeholder="제목 (선택)"
             className="input-field px-3 text-sm sm:w-40"
           />
+          {video.platform === "storyroom" && (
+            <input
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="스토리룸 닉네임"
+              className="input-field px-3 text-sm sm:w-40"
+              aria-label="스토리룸 닉네임"
+            />
+          )}
           <input
             value={durationText}
             onChange={(e) => setDurationText(e.target.value)}
@@ -429,6 +570,32 @@ function VideoRow({ video }: { video: Video }) {
               </div>
             )}
           </div>
+          {video.platform === "storyroom" &&
+            (nicknameMissing ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  value={nicknameDraft}
+                  onChange={(e) => setNicknameDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSaveNickname();
+                  }}
+                  placeholder="스토리룸 닉네임 입력"
+                  className="input-field h-7 w-40 px-2 text-xs"
+                  aria-label="스토리룸 닉네임"
+                />
+                <button
+                  type="button"
+                  disabled={!nicknameDraft.trim() || pending}
+                  onClick={handleSaveNickname}
+                  className="chip border border-line px-2 text-[11px] font-semibold text-teal-deep transition-colors duration-150 hover:bg-teal-soft active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {pending ? "저장 중..." : "저장"}
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs text-muted">스토리룸 닉네임: {video.owner_nickname}</p>
+            ))}
           <a
             href={video.url ?? "#"}
             target="_blank"
