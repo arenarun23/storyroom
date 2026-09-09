@@ -193,7 +193,25 @@ export default async function LandingPage() {
       </section>
 
       <footer className="mt-auto flex flex-col items-center gap-2 border-t border-line px-6 py-8 text-xs text-muted sm:px-10">
-        <p>이용약관 · 개인정보처리방침 (준비 중)</p>
+        <p className="flex items-center gap-2">
+          <a
+            href="/terms"
+            target="_blank"
+            rel="noreferrer"
+            className="underline decoration-line hover:text-teal-deep"
+          >
+            이용약관
+          </a>
+          <span aria-hidden>·</span>
+          <a
+            href="/privacy"
+            target="_blank"
+            rel="noreferrer"
+            className="underline decoration-line hover:text-teal-deep"
+          >
+            개인정보 수집·이용 동의
+          </a>
+        </p>
         <p>© STORYROOM EDU CERTIFICATION</p>
       </footer>
     </div>

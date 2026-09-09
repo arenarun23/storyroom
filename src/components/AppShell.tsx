@@ -111,6 +111,16 @@ export default function AppShell({ displayName, avatarUrl, email, isAdmin = fals
         {children}
       </main>
 
+      <footer className="mx-auto flex w-full max-w-[1440px] items-center justify-center gap-2 px-4 pb-20 pt-6 text-xs text-muted sm:px-8 md:pb-6">
+        <a href="/terms" target="_blank" rel="noreferrer" className="underline decoration-line hover:text-teal-deep">
+          이용약관
+        </a>
+        <span aria-hidden>·</span>
+        <a href="/privacy" target="_blank" rel="noreferrer" className="underline decoration-line hover:text-teal-deep">
+          개인정보 수집·이용 동의
+        </a>
+      </footer>
+
       <nav className="fixed inset-x-0 bottom-0 z-10 flex justify-around border-t border-line bg-card py-2 md:hidden">
         {navItems.map((item) => (
           <Link
