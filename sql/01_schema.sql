@@ -49,6 +49,7 @@ drop function if exists admin_reassign_video(uuid, uuid, uuid) cascade;
 drop function if exists admin_reset_video(uuid, uuid) cascade;
 drop function if exists release_cooldown_early(uuid, uuid) cascade;
 drop function if exists public_stats() cascade;
+drop function if exists public_level_stats() cascade;
 drop function if exists ensure_profile() cascade;
 drop function if exists my_metrics(timestamptz) cascade;
 drop function if exists withdraw_user(uuid) cascade;
@@ -1574,6 +1575,22 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 grant execute on function public_stats() to anon, authenticated;
+
+-- 랜딩 페이지 등급 배지 아래 등급별 인원/영상 수 표시용.
+create function public_level_stats()
+returns table(level_code text, user_count bigint, video_count bigint)
+language sql stable security definer set search_path = public as $$
+  select
+    l.code,
+    count(distinct p.id) as user_count,
+    count(distinct v.id) filter (where v.status = 'active') as video_count
+  from levels l
+  left join profiles p on p.current_level = l.code and p.status = 'active'
+  left join videos v on v.owner_id = p.id and v.status = 'active'
+  group by l.code;
+$$;
+
+grant execute on function public_level_stats() to anon, authenticated;
 
 insert into level_rules (target_level, rule_type, metric_key, operator, threshold, rule_group) values
   ('L1', 'promotion', 'video_count', '>=', 3, null),

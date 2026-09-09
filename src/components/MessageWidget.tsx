@@ -41,7 +41,9 @@ export default function MessageWidget() {
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<View>("list");
-  viewRef.current = view;
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
 
   const refreshThreads = useCallback(async () => {
     const t = await listThreadsForViewer();

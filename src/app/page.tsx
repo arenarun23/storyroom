@@ -2,7 +2,14 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import LevelBadge from "@/components/LevelBadge";
 import LandingAuthHeader from "@/app/LandingAuthHeader";
+import { hexAlpha } from "@/lib/levelSummary";
 import type { Level } from "@/lib/types";
+
+interface LevelStat {
+  level_code: string;
+  user_count: number;
+  video_count: number;
+}
 
 const FALLBACK_LEVELS: Pick<
   Level,
@@ -56,12 +63,13 @@ export default async function LandingPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: levels }, { data: stats }, { data: profile }] = await Promise.all([
+  const [{ data: levels }, { data: stats }, { data: levelStats }, { data: profile }] = await Promise.all([
     supabase
       .from("levels")
       .select("code, order_no, name, badge_color, badge_image_url, description")
       .order("order_no"),
     supabase.rpc("public_stats").single(),
+    supabase.rpc("public_level_stats"),
     user
       ? supabase.from("profiles").select("display_name").eq("id", user.id).single()
       : Promise.resolve({ data: null }),
@@ -71,6 +79,9 @@ export default async function LandingPage() {
   const teacherCount = (stats as { teacher_count?: number } | null)?.teacher_count ?? 0;
   const videoCount = (stats as { video_count?: number } | null)?.video_count ?? 0;
   const showStats = teacherCount > 0;
+  const levelStatMap = new Map(
+    ((levelStats as LevelStat[] | null) ?? []).map((s) => [s.level_code, s]),
+  );
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col">
@@ -108,8 +119,9 @@ export default async function LandingPage() {
         <div className="mt-6 flex flex-wrap items-center justify-center gap-6">
           {badgeLevels.map((level) => {
             const [, badgeColor] = (level.badge_color ?? "#8B9B98,#677876").split(",");
+            const stat = levelStatMap.get(level.code);
             return (
-              <div key={level.code} className="flex flex-col items-center gap-2">
+              <div key={level.code} className="flex w-[110px] flex-col items-center gap-2">
                 <LevelBadge level={level} size="101px" showCaption={false} />
                 <span
                   className="rounded-[8px] border px-2.5 py-1 font-nanum text-[15px] font-bold"
@@ -117,6 +129,26 @@ export default async function LandingPage() {
                 >
                   {level.name}
                 </span>
+                <div className="flex w-full flex-col gap-1.5">
+                  <div
+                    className="rounded-[8px] px-2 py-1.5 text-center"
+                    style={{ backgroundColor: hexAlpha(badgeColor, "1a") }}
+                  >
+                    <p className="font-mono text-sm font-bold" style={{ color: badgeColor }}>
+                      {stat?.user_count ?? 0}
+                    </p>
+                    <p className="text-[10px] text-muted">참여 인원</p>
+                  </div>
+                  <div
+                    className="rounded-[8px] px-2 py-1.5 text-center"
+                    style={{ backgroundColor: hexAlpha(badgeColor, "1a") }}
+                  >
+                    <p className="font-mono text-sm font-bold" style={{ color: badgeColor }}>
+                      {stat?.video_count ?? 0}
+                    </p>
+                    <p className="text-[10px] text-muted">등록 영상</p>
+                  </div>
+                </div>
               </div>
             );
           })}
