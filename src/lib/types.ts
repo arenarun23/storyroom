@@ -17,6 +17,7 @@ export interface Level {
   badge_color: string | null; // "fromHex,toHex"
   badge_image_url: string | null;
   has_retention: boolean;
+  retention_days: number | null;
   is_active: boolean;
   promotion_note: string | null;
   retention_note: string | null;

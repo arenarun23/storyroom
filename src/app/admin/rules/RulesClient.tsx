@@ -118,6 +118,10 @@ function RetentionExpirySection({
       <p className="text-xs text-muted">
         승급/유지 판정 시 새로 부여되는 만료일 계산 방식입니다. 기존 회원의 만료일에는 영향을 주지 않습니다.
       </p>
+      <p className="text-xs text-muted">
+        스타터: 유지기한 없음 / 비기너: 승급일로부터 365일(1년) / 크리에이터: 승급일로부터 365일(1년) / 마스터:
+        승급일로부터 1095일(3년)
+      </p>
 
       <div className="flex flex-wrap items-end gap-2">
         <div className="flex flex-col gap-1">
@@ -127,7 +131,7 @@ function RetentionExpirySection({
             onChange={(e) => setSelectedMode(e.target.value)}
             className="input-field px-2 text-xs"
           >
-            <option value="yearly">매년(해당연도 12월 31일)</option>
+            <option value="yearly">자동(등급별 유지기간, 기본값)</option>
             <option value="manual">수동(기간 선택)</option>
             <option value="manual_date">수동(날짜 선택)</option>
           </select>
@@ -181,6 +185,7 @@ function RetentionExpirySection({
           )}
         </div>
       </div>
+      <p className="text-xs text-muted">관리자가 수동으로 등급 유지일을 변경할 수 있지만 되도록 수정하지 마세요.</p>
     </section>
   );
 }

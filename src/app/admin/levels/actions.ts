@@ -61,6 +61,7 @@ export async function adminCreateLevel(name: string): Promise<ActionResult> {
     name,
     badge_color: "#C3CFCD,#8B9B98",
     has_retention: true,
+    retention_days: 365,
   });
   if (error) return { ok: false, message: "레벨 추가에 실패했습니다." };
 

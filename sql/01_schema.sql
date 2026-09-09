@@ -63,6 +63,7 @@ drop function if exists admin_activity_feed(integer, timestamptz, uuid) cascade;
 drop function if exists apply_level(uuid, text, text, text, uuid) cascade;
 drop function if exists retention_expiry_date(integer) cascade;
 drop function if exists retention_expiry_date() cascade;
+drop function if exists retention_expiry_date(text, timestamptz) cascade;
 drop function if exists evaluate_level(uuid) cascade;
 drop function if exists check_rules(uuid, text, text, timestamptz) cascade;
 drop function if exists get_user_metrics(uuid, timestamptz) cascade;
@@ -105,6 +106,9 @@ create table levels (
   badge_color     text, -- "fromHex,toHex" 그라디언트
   badge_image_url text,
   has_retention   boolean not null default true,
+  -- has_retention=true인 등급의 유지기간(일). null이면(스타터 등) 무제한.
+  -- 승급/하강일(profiles.level_updated_at) 기준으로 이 일수만큼 유지된다.
+  retention_days  integer,
   is_active       boolean not null default true,
   -- 등급 안내 카드에 표시할 문구. 줄바꿈 = 항목 하나. 비어 있으면
   -- level_rules 기준값으로 자동 생성한 문구를 대신 보여준다(lib/levelSummary.ts).
@@ -545,15 +549,21 @@ begin
 end;
 $$;
 
--- retention_period_mode 설정('yearly' | 'manual')에 따라 유지 만료일 계산
--- 방식을 바꾼다. yearly(기본값): 갱신 시점 연도의 12월 31일까지.
--- manual: 갱신 시점으로부터 retention_months개월 뒤까지.
-create function retention_expiry_date() returns timestamptz
+-- retention_period_mode 설정에 따라 유지 만료일 계산 방식을 바꾼다.
+-- yearly(기본값): 등급별 고정 일수(levels.retention_days)를 승급/하강일
+-- (p_anchor, 보통 profiles.level_updated_at)로부터 계산 — 등급 무제한(스타터)이면 null.
+-- manual: 계산 시점(now())으로부터 retention_months개월 뒤까지(전역, 등급 무관).
+-- manual_date: 관리자가 지정한 고정 날짜(전역, 등급 무관).
+-- manual/manual_date는 관리자가 등급 유지기간 계산을 통째로 수동 override할 때
+-- 쓰는 탈출구이며, p_anchor를 쓰지 않는다.
+create function retention_expiry_date(p_level text, p_anchor timestamptz default now())
+returns timestamptz
 language plpgsql stable as $$
 declare
   mode text;
   months integer;
   manual_date date;
+  days integer;
 begin
   mode := coalesce(cfg_text('retention_period_mode'), 'yearly');
   if mode = 'manual' then
@@ -565,7 +575,12 @@ begin
       return (manual_date + time '23:59:59') at time zone 'Asia/Seoul';
     end if;
   end if;
-  return (make_date(extract(year from now())::int, 12, 31) + time '23:59:59') at time zone 'Asia/Seoul';
+
+  select retention_days into days from levels where code = p_level;
+  if days is null then
+    return null;
+  end if;
+  return p_anchor + (days || ' days')::interval;
 end;
 $$;
 
@@ -608,7 +623,7 @@ begin
   -- 둔다 — 그래야 관리자가 유지 만료일을 수동으로 지정해 둔 값이
   -- 등급 재적용 때문에 되돌아가지 않는다.
   new_expires := case
-    when to_order is distinct from cur_order then (case when to_has_retention then retention_expiry_date() else null end)
+    when to_order is distinct from cur_order then (case when to_has_retention then retention_expiry_date(p_to_level, now()) else null end)
     else cur_expires
   end;
   new_lock := case when to_order < cur_order then now() + (cooldown_months || ' months')::interval else null end;
@@ -672,7 +687,7 @@ begin
     select has_retention into cur_has_retention from levels where code = prof.current_level;
     if cur_has_retention then
       perform set_config('app.internal_write', 'on', true);
-      update profiles set level_expires_at = retention_expiry_date()
+      update profiles set level_expires_at = retention_expiry_date(prof.current_level, prof.level_updated_at)
       where id = p_user;
     end if;
   end if;
@@ -719,7 +734,7 @@ begin
     select has_retention into cur_has_retention from levels where code = prof.current_level;
     if cur_has_retention then
       perform set_config('app.internal_write', 'on', true);
-      update profiles set level_expires_at = retention_expiry_date()
+      update profiles set level_expires_at = retention_expiry_date(prof.current_level, prof.level_updated_at)
       where id = p_user;
     end if;
   end if;
@@ -750,7 +765,7 @@ begin
   loop
     if check_rules(prof.id, prof.current_level, 'retention', since) then
       perform set_config('app.internal_write', 'on', true);
-      update profiles set level_expires_at = retention_expiry_date()
+      update profiles set level_expires_at = retention_expiry_date(prof.current_level, prof.level_updated_at)
       where id = prof.id;
     else
       select code into lower_level from levels
@@ -1558,11 +1573,11 @@ insert into app_config (key, value, description) values
   ('yt_sync_hour', '3', '유튜브 동기화 시각(KST)'),
   ('ai_monthly_limit', '500', 'AI 코멘트 월 상한');
 
-insert into levels (code, order_no, name, badge_color, badge_image_url, has_retention) values
-  ('L0', 0, 'Starter', '#6BD3C4,#2A9187', '/badges/starter.png', false),
-  ('L1', 1, 'Beginner', '#C3CFCD,#8B9B98', '/badges/beginner.png', true),
-  ('L2', 2, 'Creator', '#5EABEE,#0044A6', '/badges/creator.png', true),
-  ('L3', 3, 'Master', '#B18AE0,#490B5C', '/badges/master.png', true);
+insert into levels (code, order_no, name, badge_color, badge_image_url, has_retention, retention_days) values
+  ('L0', 0, 'Starter', '#6BD3C4,#2A9187', '/badges/starter.png', false, null),
+  ('L1', 1, 'Beginner', '#C3CFCD,#8B9B98', '/badges/beginner.png', true, 365),
+  ('L2', 2, 'Creator', '#5EABEE,#0044A6', '/badges/creator.png', true, 365),
+  ('L3', 3, 'Master', '#B18AE0,#490B5C', '/badges/master.png', true, 1095);
 
 -- 랜딩 페이지(SCR-01)용 공개 통계. RLS는 authenticated 대상이므로 비로그인
 -- 방문자를 위해 SECURITY DEFINER 함수로 집계값만 노출한다(개인정보 없음).
