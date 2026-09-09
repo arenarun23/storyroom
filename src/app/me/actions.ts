@@ -134,7 +134,7 @@ export async function createVideos(rows: VideoInputRow[]): Promise<CreateVideosR
 
 export async function updateVideo(
   id: string,
-  input: { url?: string; title?: string | null; durationSec?: number },
+  input: { url?: string; title?: string | null; durationSec?: number; ownerNickname?: string | null },
 ): Promise<ActionResult> {
   const supabase = await createClient();
 
@@ -147,6 +147,14 @@ export async function updateVideo(
 
   if (input.title !== undefined) {
     patch.title = input.title?.trim() || null;
+  }
+
+  if (input.ownerNickname !== undefined) {
+    const nickname = input.ownerNickname?.trim() ?? "";
+    if (!nickname) {
+      return { ok: false, message: "스토리룸 닉네임을 입력해 주세요" };
+    }
+    patch.owner_nickname = nickname;
   }
 
   if (input.url !== undefined) {
@@ -181,6 +189,40 @@ export async function updateVideo(
     if (error.code === "23505") {
       return { ok: false, message: "이미 등록된 영상입니다" };
     }
+    return { ok: false, message: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요" };
+  }
+
+  revalidatePath("/me");
+  return { ok: true };
+}
+
+// 소유 확인용 닉네임이 비어 있는 내 영상 전체에 같은 닉네임을 한 번에 채운다.
+// sql/49_owner_nickname.sql 이전에 등록된 영상은 owner_nickname이 null이라
+// 목록에서 하나씩 채우지 않아도 되게 하는 보정 경로다.
+export async function fillMissingOwnerNicknames(
+  nickname: string,
+  platform: "storyroom" | "youtube" = "storyroom",
+): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "로그인이 필요합니다." };
+
+  const value = nickname.trim();
+  if (!value) {
+    return { ok: false, message: "스토리룸 닉네임을 입력해 주세요" };
+  }
+
+  const { error } = await supabase
+    .from("videos")
+    .update({ owner_nickname: value })
+    .eq("owner_id", user.id)
+    .eq("platform", platform)
+    .is("owner_nickname", null);
+
+  if (error) {
     return { ok: false, message: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요" };
   }
 
