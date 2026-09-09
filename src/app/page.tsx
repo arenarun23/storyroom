@@ -185,10 +185,10 @@ export default async function LandingPage() {
       <section className="flex flex-col items-center gap-6 px-6 py-16 text-center sm:px-10">
         <h2 className="font-title text-2xl font-bold text-ink">지금 바로 첫 영상을 등록해 보세요</h2>
         <Link
-          href="/login"
+          href={user ? "/me" : "/login"}
           className="btn flex items-center rounded-[10px] bg-teal px-8 text-base font-semibold text-white"
         >
-          구글 계정으로 시작하기
+          {user ? "내 정보 수정하기" : "구글 계정으로 시작하기"}
         </Link>
       </section>
 
