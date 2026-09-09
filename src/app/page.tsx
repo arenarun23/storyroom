@@ -131,22 +131,26 @@ export default async function LandingPage() {
                 </span>
                 <div className="flex w-full flex-col gap-1.5">
                   <div
-                    className="rounded-[8px] px-2 py-1.5 text-center"
-                    style={{ backgroundColor: hexAlpha(badgeColor, "1a") }}
+                    className="rounded-[8px] px-2 py-2 text-center"
+                    style={{ backgroundColor: hexAlpha(badgeColor, "26") }}
                   >
-                    <p className="font-mono text-sm font-bold" style={{ color: badgeColor }}>
+                    <p className="font-mono text-lg font-black" style={{ color: badgeColor }}>
                       {stat?.user_count ?? 0}
                     </p>
-                    <p className="text-[10px] text-muted">참여 인원</p>
+                    <p className="text-sm font-semibold" style={{ color: badgeColor }}>
+                      참여 인원
+                    </p>
                   </div>
                   <div
-                    className="rounded-[8px] px-2 py-1.5 text-center"
-                    style={{ backgroundColor: hexAlpha(badgeColor, "1a") }}
+                    className="rounded-[8px] px-2 py-2 text-center"
+                    style={{ backgroundColor: hexAlpha(badgeColor, "26") }}
                   >
-                    <p className="font-mono text-sm font-bold" style={{ color: badgeColor }}>
+                    <p className="font-mono text-lg font-black" style={{ color: badgeColor }}>
                       {stat?.video_count ?? 0}
                     </p>
-                    <p className="text-[10px] text-muted">등록 영상</p>
+                    <p className="text-sm font-semibold" style={{ color: badgeColor }}>
+                      등록 영상
+                    </p>
                   </div>
                 </div>
               </div>
