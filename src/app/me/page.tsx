@@ -66,6 +66,11 @@ export default async function MePage() {
 
   const activeVideos = (videos ?? []).filter((v) => v.status === "active");
 
+  // 새 영상 등록 폼의 닉네임 기본값 — 가장 최근에 등록한 스토리룸 영상의 값.
+  // 닉네임을 바꿨으면 등록 폼에서 새 값으로 고치면 되고, 기존 영상은 유지된다.
+  const latestStoryroomNickname =
+    (videos ?? []).find((v) => v.platform === "storyroom" && v.owner_nickname?.trim())?.owner_nickname?.trim() ?? "";
+
   const currentLevel = levels?.find((l) => l.code === profile.current_level);
   const nextLevel = levels?.find((l) => l.order_no === (currentLevel?.order_no ?? 0) + 1 && l.is_active);
 
@@ -208,7 +213,11 @@ export default async function MePage() {
           </section>
         )}
 
-        <VideoRegisterForm disabled={isPending} currentLevelCode={profile.current_level} />
+        <VideoRegisterForm
+          disabled={isPending}
+          currentLevelCode={profile.current_level}
+          defaultNickname={latestStoryroomNickname}
+        />
 
         {currentLevel?.code === "L2" && <BlogManager posts={blogPosts ?? []} disabled={isPending} />}
 

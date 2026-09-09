@@ -215,12 +215,13 @@ export async function fillMissingOwnerNicknames(
     return { ok: false, message: "스토리룸 닉네임을 입력해 주세요" };
   }
 
+  // 이미 값이 있는 영상은 절대 건드리지 않는다 — 비어 있는(null 또는 공백) 행만 채운다.
   const { error } = await supabase
     .from("videos")
     .update({ owner_nickname: value })
     .eq("owner_id", user.id)
     .eq("platform", platform)
-    .is("owner_nickname", null);
+    .or("owner_nickname.is.null,owner_nickname.eq.");
 
   if (error) {
     return { ok: false, message: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요" };

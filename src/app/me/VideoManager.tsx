@@ -36,19 +36,23 @@ interface InputRow {
 }
 
 let rowSeq = 0;
-function emptyRow(): InputRow {
+function emptyRow(ownerNickname = ""): InputRow {
   rowSeq += 1;
-  return { id: rowSeq, url: "", title: "", durationSec: null, manualText: "", status: "idle", ownerNickname: "" };
+  return { id: rowSeq, url: "", title: "", durationSec: null, manualText: "", status: "idle", ownerNickname };
 }
 
 export function VideoRegisterForm({
   disabled,
   currentLevelCode,
+  defaultNickname = "",
 }: {
   disabled: boolean;
   currentLevelCode: string;
+  // 최근 등록한 스토리룸 영상의 닉네임. 새 입력 행에 미리 채워 넣기만 하고,
+  // 여기서 바꿔도 이미 등록된 영상의 닉네임은 건드리지 않는다.
+  defaultNickname?: string;
 }) {
-  const [rows, setRows] = useState<InputRow[]>([emptyRow()]);
+  const [rows, setRows] = useState<InputRow[]>([emptyRow(defaultNickname)]);
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -58,7 +62,13 @@ export function VideoRegisterForm({
   }
 
   function addRow() {
-    setRows((prev) => (prev.length >= MAX_ROWS ? prev : [...prev, emptyRow()]));
+    setRows((prev) =>
+      prev.length >= MAX_ROWS
+        ? prev
+        // 새 행에는 직전 행에 적은 닉네임을 이어서 채운다(같은 사람이 여러 편을
+        // 연달아 등록하는 경우가 대부분).
+        : [...prev, emptyRow(prev[prev.length - 1]?.ownerNickname || defaultNickname)],
+    );
   }
 
   function removeRow(id: number) {
@@ -165,7 +175,7 @@ export function VideoRegisterForm({
       );
 
       if (result.ok) {
-        setRows([emptyRow()]);
+        setRows([emptyRow(filled[filled.length - 1]?.ownerNickname.trim() || defaultNickname)]);
         router.refresh();
         return;
       }
@@ -186,6 +196,13 @@ export function VideoRegisterForm({
   return (
     <section className="card flex flex-col gap-4 p-6">
       <h2 className="font-title text-lg font-bold text-ink">영상 등록</h2>
+      {!disabled && defaultNickname && (
+        <p className="text-xs text-muted">
+          스토리룸 닉네임은 최근 등록값(<span className="font-semibold text-ink">{defaultNickname}</span>)으로 미리
+          채워집니다. 닉네임이 바뀌었으면 여기서 새 닉네임으로 고쳐 주세요. 이미 등록된 영상의 닉네임은 그대로
+          유지됩니다.
+        </p>
+      )}
 
       {disabled ? (
         <p className="banner bg-gold-soft px-4 py-3 text-sm text-gold">
@@ -386,8 +403,9 @@ function NicknamePrompt({ missingCount, onClose }: { missingCount: number; onClo
           스토리룸 닉네임을 입력해 주세요
         </h3>
         <p className="text-sm text-muted">
-          닉네임이 입력되지 않은 영상이 {missingCount}편 있습니다. 아래에 입력하면 해당 영상 전체에 한 번에
-          적용됩니다. 영상마다 다르게 넣어야 하면 목록에서 개별 수정도 가능합니다.
+          닉네임이 입력되지 않은 영상이 {missingCount}편 있습니다. 아래에 입력하면{" "}
+          <span className="font-semibold text-ink">이 {missingCount}편에만</span> 적용되고, 이미 닉네임이 들어 있는
+          영상은 그대로 유지됩니다. 영상마다 다르게 넣어야 하면 목록에서 개별 수정도 가능합니다.
         </p>
         <input
           type="text"
