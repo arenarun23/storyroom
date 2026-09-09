@@ -31,16 +31,23 @@ interface InputRow {
   durationSec: number | null;
   manualText: string;
   status: RowStatus;
+  ownerNickname: string;
   error?: string;
 }
 
 let rowSeq = 0;
 function emptyRow(): InputRow {
   rowSeq += 1;
-  return { id: rowSeq, url: "", title: "", durationSec: null, manualText: "", status: "idle" };
+  return { id: rowSeq, url: "", title: "", durationSec: null, manualText: "", status: "idle", ownerNickname: "" };
 }
 
-export function VideoRegisterForm({ disabled }: { disabled: boolean }) {
+export function VideoRegisterForm({
+  disabled,
+  currentLevelCode,
+}: {
+  disabled: boolean;
+  currentLevelCode: string;
+}) {
   const [rows, setRows] = useState<InputRow[]>([emptyRow()]);
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -115,12 +122,34 @@ export function VideoRegisterForm({ disabled }: { disabled: boolean }) {
     });
   }
 
+  // 스토리룸 영상은 등급 무관 항상, 유튜브 영상은 크리에이터(마스터 승급
+  // 대상)일 때만 닉네임/채널 입력란을 보여준다(§ 본인 소유 확인).
+  function showsNickname(url: string) {
+    return !extractYouTubeId(url.trim()) || currentLevelCode === "L2";
+  }
+  function nicknamePlaceholder(url: string) {
+    return extractYouTubeId(url.trim()) ? "유튜브 채널 또는 닉네임" : "스토리룸 닉네임";
+  }
+
   function handleSubmit() {
     setFormMessage(null);
 
     const filled = rows.filter((r) => r.url.trim().length > 0);
     if (filled.length === 0) {
       setFormMessage("등록할 영상을 입력해 주세요.");
+      return;
+    }
+
+    const missingNickname = filled.filter((r) => showsNickname(r.url) && !r.ownerNickname.trim());
+    if (missingNickname.length > 0) {
+      const missingIds = missingNickname.map((r) => r.id);
+      setRows((prev) =>
+        prev.map((r) =>
+          missingIds.includes(r.id)
+            ? { ...r, error: extractYouTubeId(r.url.trim()) ? "유튜브 채널 또는 닉네임을 입력해 주세요" : "스토리룸 닉네임을 입력해 주세요" }
+            : r,
+        ),
+      );
       return;
     }
 
@@ -131,6 +160,7 @@ export function VideoRegisterForm({ disabled }: { disabled: boolean }) {
           title: r.title.trim() || null,
           durationSec: r.durationSec,
           durationSource: (r.status === "auto" ? "auto" : "manual") as DurationSource,
+          ownerNickname: r.ownerNickname.trim() || null,
         })),
       );
 
@@ -184,6 +214,17 @@ export function VideoRegisterForm({ disabled }: { disabled: boolean }) {
                   className="input-field px-4 text-sm sm:w-40"
                   aria-label={`영상 제목 ${i + 1}`}
                 />
+
+                {showsNickname(row.url) && (
+                  <input
+                    type="text"
+                    placeholder={nicknamePlaceholder(row.url)}
+                    value={row.ownerNickname}
+                    onChange={(e) => updateRow(row.id, { ownerNickname: e.target.value })}
+                    className="input-field px-4 text-sm sm:w-40"
+                    aria-label={`${nicknamePlaceholder(row.url)} ${i + 1}`}
+                  />
+                )}
 
                 <div className="flex items-center gap-2 sm:w-48">
                   {row.status === "auto" ? (

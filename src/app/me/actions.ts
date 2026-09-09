@@ -20,7 +20,7 @@ export async function createVideos(rows: VideoInputRow[]): Promise<CreateVideosR
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("approval_status")
+    .select("approval_status, current_level")
     .eq("id", user.id)
     .single();
 
@@ -56,6 +56,16 @@ export async function createVideos(rows: VideoInputRow[]): Promise<CreateVideosR
     rowErrors[i] = URL_PATTERN.test(row.url.trim())
       ? "재생시간을 자동으로 읽지 못했습니다. 직접 입력해 주세요."
       : "http(s):// 로 시작하는 링크를 넣어주세요";
+  });
+
+  // 본인 소유 확인용 닉네임: 스토리룸 영상은 항상 필수, 유튜브 영상은
+  // 크리에이터(마스터 승급 대상)일 때만 화면에 입력란이 보이므로 그때만 필수로 본다.
+  parsed.forEach((p, i) => {
+    if (!p || rowErrors[i]) return;
+    const requiresNickname = p.platform === "storyroom" || profile?.current_level === "L2";
+    if (requiresNickname && !rows[i].ownerNickname?.trim()) {
+      rowErrors[i] = p.platform === "storyroom" ? "스토리룸 닉네임을 입력해 주세요" : "유튜브 채널 또는 닉네임을 입력해 주세요";
+    }
   });
 
   // 입력 내 중복
@@ -106,6 +116,7 @@ export async function createVideos(rows: VideoInputRow[]): Promise<CreateVideosR
     duration_sec: p!.durationSec,
     duration_source: rows[i].durationSource,
     yt_video_id: p!.platform === "youtube" ? extractYouTubeId(p!.url) : null,
+    owner_nickname: rows[i].ownerNickname?.trim() || null,
   }));
 
   const { error } = await supabase.from("videos").insert(inserts);
@@ -242,6 +253,14 @@ export async function createBlogPosts(rows: BlogPostInputRow[]): Promise<CreateB
     rowErrors[i] = "http(s):// 로 시작하는 링크를 넣어주세요";
   });
 
+  // 본인 소유 확인용 블로그 이름은 항상 필수(이 폼은 크리에이터에게만 노출됨).
+  parsed.forEach((p, i) => {
+    if (!p || rowErrors[i]) return;
+    if (!rows[i].ownerNickname?.trim()) {
+      rowErrors[i] = "블로그 이름을 입력해 주세요";
+    }
+  });
+
   // 입력 내 중복
   const byKey = new Map<string, number[]>();
   parsed.forEach((p, i) => {
@@ -286,6 +305,7 @@ export async function createBlogPosts(rows: BlogPostInputRow[]): Promise<CreateB
     title: rows[i].title?.trim() || null,
     url: p!.url,
     url_key: p!.key,
+    owner_nickname: rows[i].ownerNickname?.trim() || null,
   }));
 
   const { error } = await supabase.from("blog_posts").insert(inserts);

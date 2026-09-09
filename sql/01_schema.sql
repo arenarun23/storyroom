@@ -158,6 +158,8 @@ create table videos (
   yt_synced_at    timestamptz,
   is_flagged      boolean not null default false,
   status          text not null default 'active' check (status in ('active','pending','rejected','deleted','withdrawn','reset')),
+  -- 본인 소유 확인용 닉네임(스토리룸 닉네임 또는 유튜브 채널/닉네임). 등록 폼에서 입력.
+  owner_nickname  text,
   reassigned_to_id uuid references profiles(id) on delete set null,
   -- 어떤 관리자가 승인/거절했는지 기록(§ 승인 요청 알림).
   reviewed_by     uuid references profiles(id) on delete set null,
@@ -179,6 +181,8 @@ create table blog_posts (
   url         text not null,
   url_key     text not null unique,
   status      text not null default 'pending' check (status in ('active','pending','rejected','deleted','withdrawn')),
+  -- 본인 소유 확인용 블로그 이름. 등록 폼에서 입력(크리에이터→마스터 승급용).
+  owner_nickname text,
   reviewed_by uuid references profiles(id) on delete set null,
   reviewed_at timestamptz,
   created_at  timestamptz not null default now(),

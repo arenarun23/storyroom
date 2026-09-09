@@ -16,7 +16,7 @@ export default async function AdminVideosPage() {
     supabase
       .from("videos")
       .select(
-        "id, owner_id, platform, title, url, duration_sec, status, is_flagged, created_at, reviewed_at, owner:profiles!owner_id(display_name, email), reassigned_to:profiles!reassigned_to_id(display_name, email), reviewer:profiles!reviewed_by(display_name, email)",
+        "id, owner_id, platform, title, url, duration_sec, status, is_flagged, owner_nickname, created_at, reviewed_at, owner:profiles!owner_id(display_name, email), reassigned_to:profiles!reassigned_to_id(display_name, email), reviewer:profiles!reviewed_by(display_name, email)",
       )
       .order("created_at", { ascending: false }),
     supabase

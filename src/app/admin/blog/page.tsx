@@ -15,7 +15,7 @@ export default async function AdminBlogPage() {
   const { data: posts } = await supabase
     .from("blog_posts")
     .select(
-      "id, owner_id, title, url, status, created_at, reviewed_at, owner:profiles!owner_id(display_name, email), reviewer:profiles!reviewed_by(display_name, email)",
+      "id, owner_id, title, url, status, owner_nickname, created_at, reviewed_at, owner:profiles!owner_id(display_name, email), reviewer:profiles!reviewed_by(display_name, email)",
     )
     .order("created_at", { ascending: false });
 

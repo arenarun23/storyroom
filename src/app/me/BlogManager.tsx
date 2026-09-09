@@ -27,13 +27,14 @@ interface InputRow {
   id: number;
   url: string;
   title: string;
+  ownerNickname: string;
   error?: string;
 }
 
 let rowSeq = 0;
 function emptyRow(): InputRow {
   rowSeq += 1;
-  return { id: rowSeq, url: "", title: "" };
+  return { id: rowSeq, url: "", title: "", ownerNickname: "" };
 }
 
 interface BlogManagerProps {
@@ -70,8 +71,19 @@ export default function BlogManager({ posts, disabled }: BlogManagerProps) {
       return;
     }
 
+    const missingNickname = filled.filter((r) => !r.ownerNickname.trim());
+    if (missingNickname.length > 0) {
+      const missingIds = missingNickname.map((r) => r.id);
+      setRows((prev) =>
+        prev.map((r) => (missingIds.includes(r.id) ? { ...r, error: "블로그 이름을 입력해 주세요" } : r)),
+      );
+      return;
+    }
+
     startTransition(async () => {
-      const result = await createBlogPosts(filled.map((r) => ({ url: r.url, title: r.title.trim() || null })));
+      const result = await createBlogPosts(
+        filled.map((r) => ({ url: r.url, title: r.title.trim() || null, ownerNickname: r.ownerNickname.trim() || null })),
+      );
 
       if (result.ok) {
         setRows([emptyRow()]);
@@ -123,6 +135,15 @@ export default function BlogManager({ posts, disabled }: BlogManagerProps) {
                       onChange={(e) => updateRow(row.id, { title: e.target.value })}
                       className="input-field flex-1 px-4 text-sm sm:w-56"
                       aria-label={`게시물 제목 ${i + 1}`}
+                    />
+
+                    <input
+                      type="text"
+                      placeholder="블로그 이름"
+                      value={row.ownerNickname}
+                      onChange={(e) => updateRow(row.id, { ownerNickname: e.target.value })}
+                      className="input-field flex-1 px-4 text-sm sm:w-40"
+                      aria-label={`블로그 이름 ${i + 1}`}
                     />
 
                     {rows.length > 1 && (

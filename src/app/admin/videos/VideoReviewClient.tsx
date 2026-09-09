@@ -21,6 +21,7 @@ export interface AdminVideoRow {
   duration_sec: number;
   status: "active" | "pending" | "rejected" | "deleted" | "withdrawn" | "reset";
   is_flagged: boolean;
+  owner_nickname: string | null;
   created_at: string;
   reviewed_at: string | null;
   owner: { display_name: string | null; email: string } | null;
@@ -278,6 +279,12 @@ function VideoCard({
         <p className="text-xs text-muted">
           {v.status === "active" ? "승인" : "거절"}: {v.reviewer.display_name ?? v.reviewer.email}
           {v.reviewed_at && ` · ${formatDateKST(v.reviewed_at)}`}
+        </p>
+      )}
+
+      {v.owner_nickname && (
+        <p className="text-xs text-muted">
+          {v.platform === "youtube" ? "유튜브 채널/닉네임" : "스토리룸 닉네임"}: {v.owner_nickname}
         </p>
       )}
 

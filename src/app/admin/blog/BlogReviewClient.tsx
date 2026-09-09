@@ -11,6 +11,7 @@ export interface AdminBlogPostRow {
   title: string | null;
   url: string | null;
   status: "active" | "pending" | "rejected" | "deleted" | "withdrawn";
+  owner_nickname: string | null;
   created_at: string;
   reviewed_at: string | null;
   owner: { display_name: string | null; email: string } | null;
@@ -113,6 +114,8 @@ export default function BlogReviewClient({ posts }: { posts: AdminBlogPostRow[] 
                     {p.reviewed_at && ` · ${formatDateKST(p.reviewed_at)}`}
                   </p>
                 )}
+
+                {p.owner_nickname && <p className="text-xs text-muted">블로그 이름: {p.owner_nickname}</p>}
 
                 {p.title && <p className="text-sm text-ink">{p.title}</p>}
                 {p.url && (

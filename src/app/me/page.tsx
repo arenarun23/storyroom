@@ -208,7 +208,7 @@ export default async function MePage() {
           </section>
         )}
 
-        <VideoRegisterForm disabled={isPending} />
+        <VideoRegisterForm disabled={isPending} currentLevelCode={profile.current_level} />
 
         {currentLevel?.code === "L2" && <BlogManager posts={blogPosts ?? []} disabled={isPending} />}
 

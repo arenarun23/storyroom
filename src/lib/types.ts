@@ -65,6 +65,7 @@ export interface Video {
   yt_comments: number;
   is_flagged: boolean;
   status: VideoStatus;
+  owner_nickname: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -76,6 +77,7 @@ export interface BlogPost {
   url: string | null;
   url_key: string;
   status: BlogPostStatus;
+  owner_nickname: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -85,6 +87,7 @@ export interface VideoInputRow {
   title: string | null;
   durationSec: number | null;
   durationSource: DurationSource;
+  ownerNickname: string | null;
 }
 
 export type CreateVideosResult =
@@ -94,6 +97,7 @@ export type CreateVideosResult =
 export interface BlogPostInputRow {
   url: string;
   title: string | null;
+  ownerNickname: string | null;
 }
 
 export type CreateBlogPostsResult =
