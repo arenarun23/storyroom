@@ -82,14 +82,14 @@ export default async function LevelsPage() {
                 <div key={level.code} className="flex items-center gap-2">
                   <div className="flex items-center gap-2.5">
                     <span
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-xs font-bold text-white"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold text-white"
                       style={{ backgroundColor: stepColor }}
                     >
                       {String(i).padStart(2, "0")}
                     </span>
                     <div className="flex flex-col leading-tight">
-                      <span className="text-sm font-bold text-ink">{level.name}</span>
-                      <span className="text-[11px] text-muted" style={{ fontFamily: "var(--font-body)" }}>
+                      <span className="text-base font-bold text-ink">{level.name}</span>
+                      <span className="text-[11px] font-medium text-ink" style={{ fontFamily: "var(--font-body)" }}>
                         {koreanLevelName(level.code, level.name)} · {summarizeStepper(promotionRules)}
                       </span>
                     </div>
