@@ -85,7 +85,7 @@ export default async function LevelsPage() {
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-xs font-bold text-white"
                       style={{ backgroundColor: stepColor }}
                     >
-                      {String(i + 1).padStart(2, "0")}
+                      {String(i).padStart(2, "0")}
                     </span>
                     <div className="flex flex-col leading-tight">
                       <span className="text-sm font-bold text-ink">{level.name}</span>
