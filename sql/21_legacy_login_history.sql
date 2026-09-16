@@ -1,6 +1,6 @@
 -- =====================================================================
 -- 스토리룸 교사 그룹 — 과거 로그인 기록 조회 시도(Supabase 내부 감사 로그)
--- 01_schema.sql ~ 20_login_history_super_admin_only.sql 다음에 실행한다. 재실행에 안전하다(멱등).
+-- 01_DANGER_full_reset_schema.sql ~ 20_login_history_super_admin_only.sql 다음에 실행한다. 재실행에 안전하다(멱등).
 --
 -- login_history 테이블은 오늘 이후 로그인만 기록한다. 그 이전 로그인은
 -- Supabase Auth(GoTrue)가 내부적으로 쌓는 auth.audit_log_entries에

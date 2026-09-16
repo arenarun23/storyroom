@@ -7,6 +7,13 @@ import { formatDateKST, formatDuration } from "@/lib/format";
 import { isAdminRole } from "@/lib/roles";
 import type { Comment, Level } from "@/lib/types";
 
+interface ProfileCard {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  current_level: string | null;
+}
+
 // SCR-07 영상 상세
 export default async function VideoDetailPage(props: PageProps<"/videos/[id]">) {
   const { id } = await props.params;
@@ -20,11 +27,7 @@ export default async function VideoDetailPage(props: PageProps<"/videos/[id]">) 
   const [{ data: profile }, { data: levels }, { data: video }] = await Promise.all([
     supabase.from("profiles").select("display_name, avatar_url, role").eq("id", user.id).single(),
     supabase.from("levels").select("*").order("order_no").returns<Level[]>(),
-    supabase
-      .from("videos")
-      .select("*, profiles!owner_id(display_name, current_level)")
-      .eq("id", id)
-      .maybeSingle(),
+    supabase.from("videos").select("*").eq("id", id).maybeSingle(),
   ]);
 
   if (!video) notFound();
@@ -32,21 +35,37 @@ export default async function VideoDetailPage(props: PageProps<"/videos/[id]">) 
   const isRemoved = video.status !== "active";
   const isOwner = video.owner_id === user.id;
 
-  const [{ count: likeCount }, { data: myLike }, { data: comments }] = isRemoved
-    ? [{ count: 0 }, { data: null }, { data: [] }]
+  // profiles_select가 본인/관리자로 좁혀져 있어, 영상 작성자·댓글 작성자처럼
+  // 다른 회원의 표시이름/등급이 필요한 곳은 public_profile_card를 거친다.
+  const [{ data: ownerCards }, { count: likeCount }, { data: myLike }, { data: rawComments }] = isRemoved
+    ? [{ data: null }, { count: 0 }, { data: null }, { data: [] }]
     : await Promise.all([
+        video.owner_id
+          ? supabase.rpc("public_profile_card", { p_ids: [video.owner_id] })
+          : Promise.resolve({ data: null }),
         supabase.from("likes").select("*", { count: "exact", head: true }).eq("video_id", id),
         supabase.from("likes").select("id").eq("video_id", id).eq("actor_id", user.id).maybeSingle(),
         supabase
           .from("comments")
-          .select("id, video_id, actor_id, content, status, created_at, profiles(display_name)")
+          .select("id, video_id, actor_id, content, status, created_at")
           .eq("video_id", id)
           .eq("status", "active")
-          .order("created_at", { ascending: true })
-          .returns<Comment[]>(),
+          .order("created_at", { ascending: true }),
       ]);
 
-  const ownerLevel = levels?.find((l) => l.code === video.profiles?.current_level);
+  const ownerCard = ((ownerCards as ProfileCard[] | null) ?? [])[0] ?? null;
+
+  const commentActorIds = [...new Set((rawComments ?? []).map((c) => c.actor_id).filter((v): v is string => !!v))];
+  const { data: actorCards } = commentActorIds.length
+    ? await supabase.rpc("public_profile_card", { p_ids: commentActorIds })
+    : { data: [] as ProfileCard[] };
+  const actorMap = new Map(((actorCards as ProfileCard[] | null) ?? []).map((c) => [c.id, c]));
+  const comments: Comment[] = (rawComments ?? []).map((c) => ({
+    ...c,
+    profiles: c.actor_id ? { display_name: actorMap.get(c.actor_id)?.display_name ?? null } : null,
+  }));
+
+  const ownerLevel = levels?.find((l) => l.code === ownerCard?.current_level);
   const title = video.title || (video.platform === "youtube" ? "YouTube 영상" : "스토리룸 영상");
 
   return (
@@ -89,7 +108,7 @@ export default async function VideoDetailPage(props: PageProps<"/videos/[id]">) 
             <div className="flex flex-col gap-2">
               <h1 className="font-title text-xl font-bold text-ink">{title}</h1>
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
-                <span>{video.profiles?.display_name ?? "이름 없음"} 선생님</span>
+                <span>{ownerCard?.display_name ?? "이름 없음"} 선생님</span>
                 {ownerLevel && (
                   <span className="chip bg-teal-soft px-3 text-xs font-semibold text-teal-deep">
                     {ownerLevel.name}
@@ -119,7 +138,7 @@ export default async function VideoDetailPage(props: PageProps<"/videos/[id]">) 
               )}
             </div>
 
-            <CommentSection videoId={video.id} initialComments={comments ?? []} />
+            <CommentSection videoId={video.id} initialComments={comments} />
           </>
         )}
       </div>

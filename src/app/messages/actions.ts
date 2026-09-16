@@ -11,15 +11,12 @@ export interface AdminOption {
 }
 
 // 회원이 새 대화를 시작할 때 고를 수 있는 관리자 목록.
+// profiles 테이블 직접 조회 대신 SECURITY DEFINER 함수를 쓴다 — profiles_select가
+// 본인/관리자로 좁혀져 있어 일반 회원은 이 함수를 거쳐야 관리자 목록을 볼 수 있다.
 export async function listAdminsForMessaging(): Promise<AdminOption[]> {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, display_name, email")
-    .in("role", ["admin", "super_admin"])
-    .eq("status", "active")
-    .order("display_name");
-  return data ?? [];
+  const { data } = await supabase.rpc("list_active_admins");
+  return (data as AdminOption[] | null) ?? [];
 }
 
 // 골라둔 관리자와의 스레드가 있으면 재사용하고, 없으면 새로 만든다
@@ -135,12 +132,12 @@ export async function listThreadsForViewer(): Promise<ThreadSummary[]> {
 
   if (!threads || threads.length === 0) return [];
 
+  // profiles_select가 본인/관리자로 좁혀져 있어, 회원이 상대(관리자)의
+  // 이름·이메일을 보려면 SECURITY DEFINER 함수를 거쳐야 한다(관리자가 상대
+  // 회원을 보는 경우는 is_admin()으로 이미 허용됨 — 함수 내부에서 함께 처리).
   const otherIds = threads.map((t) => (t.user_id === user.id ? t.admin_id : t.user_id));
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, display_name, email")
-    .in("id", otherIds);
-  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+  const { data: profiles } = await supabase.rpc("messaging_contact_info", { p_ids: otherIds });
+  const profileMap = new Map(((profiles as AdminOption[] | null) ?? []).map((p) => [p.id, p]));
 
   const threadIds = threads.map((t) => t.id);
   const { data: messages } = await supabase

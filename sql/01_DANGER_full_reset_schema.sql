@@ -1,8 +1,18 @@
 -- =====================================================================
--- 스토리룸 교사 그룹 — DB 스키마
+-- ⚠️⚠️⚠️ 위험: 이 파일은 운영 DB의 모든 테이블을 삭제하고 새로 만든다 ⚠️⚠️⚠️
+--
+-- 이 파일을 Supabase SQL 에디터에서 그대로 실행하면 회원 프로필·등록 영상·
+-- 블로그 게시물·등급 이력 등 전체 데이터가 즉시 영구 삭제된다. 되돌릴 수 없다.
+--
+-- 언제 실행하는 파일인가: 완전히 새로운(빈) Supabase 프로젝트를 처음 만들 때만.
+-- 이미 운영 중인 프로젝트에는 절대 실행하지 않는다 — 새 변경사항은 이 파일이
+-- 아니라 번호가 더 큰 sql/NN_*.sql 증분 마이그레이션 파일로 적용한다.
+-- =====================================================================
+--
+-- 스토리룸 교사 그룹 — DB 스키마 (신규 프로젝트 초기 설치 전용)
 -- 시방서 v2.0 §6(데이터 명세) §7(처리 로직) §8.3(RLS) §11.3~11.4 기준
 --
--- 실행 순서: 01_schema.sql → 02_promotion_cooldown.sql → 03_video_feed.sql
+-- 실행 순서(신규 설치 시): 01_DANGER_full_reset_schema.sql → 02_promotion_cooldown.sql → 03_video_feed.sql
 -- 이 파일은 재실행에 안전하다(0번 섹션이 기존 객체를 모두 지우고 새로 만든다).
 -- 실행 전에 있던 데이터(가입한 회원 프로필, 등록 영상 등)는 전부 삭제되니
 -- 재실행 후에는 다시 로그인해서 프로필을 만들고, 필요하면 관리자 승격
@@ -45,6 +55,9 @@ drop table if exists app_config cascade;
 drop trigger if exists on_auth_user_created on auth.users;
 
 drop function if exists list_videos_feed(text, text, bigint, timestamptz, uuid, integer) cascade;
+drop function if exists public_profile_card(uuid[]) cascade;
+drop function if exists list_active_admins() cascade;
+drop function if exists messaging_contact_info(uuid[]) cascade;
 drop function if exists admin_reassign_video(uuid, uuid, uuid) cascade;
 drop function if exists admin_reset_video(uuid, uuid) cascade;
 drop function if exists release_cooldown_early(uuid, uuid) cascade;
@@ -1341,9 +1354,13 @@ create policy level_rules_select on level_rules for select to authenticated usin
 create policy level_rules_write on level_rules for all to authenticated
   using (is_admin()) with check (is_admin());
 
--- profiles: 로그인 사용자 전체 조회(§8.3 — 피드·댓글에서 작성자 표시에 필요),
+-- profiles: 본인 또는 admin만 전체 컬럼 조회 가능(실명·연락처·학교 등 개인정보
+-- 보호). 다른 회원의 기본 정보(표시이름·아바타·등급)가 필요한 피드·댓글·메시지
+-- 화면은 public_profile_card/list_active_admins/messaging_contact_info
+-- SECURITY DEFINER 함수를 거친다(§2 공통 함수 참고).
 -- 본인 수정(보호 컬럼은 트리거가 차단) 또는 admin
-create policy profiles_select on profiles for select to authenticated using (true);
+create policy profiles_select on profiles for select to authenticated
+  using (auth.uid() = id or is_admin());
 create policy profiles_update on profiles for update to authenticated
   using (auth.uid() = id or is_admin())
   with check (auth.uid() = id or is_admin());

@@ -1,6 +1,6 @@
 -- =====================================================================
 -- 스토리룸 교사 그룹 — 전체 재판정 실행 권한 체크 버그 수정
--- 01_schema.sql ~ 16_include_admins_in_leveling.sql 다음에 실행한다. 재실행에 안전하다(멱등).
+-- 01_DANGER_full_reset_schema.sql ~ 16_include_admins_in_leveling.sql 다음에 실행한다. 재실행에 안전하다(멱등).
 --
 -- admin_reevaluate_all()이 내부에서 is_admin()(auth.uid() 기반)으로 다시
 -- 권한을 검사했는데, 이 함수는 서버 액션에서 서비스 롤 클라이언트로

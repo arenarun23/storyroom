@@ -23,7 +23,7 @@ npm run dev
 
 Supabase SQL Editor에서 `sql/` 폴더의 파일을 아래 순서대로 실행합니다.
 
-1. `01_schema.sql`
+1. `01_DANGER_full_reset_schema.sql` (신규 프로젝트에만 실행 — 운영 DB에는 절대 실행 금지)
 2. `02_promotion_cooldown.sql`
 3. `03_video_feed.sql`
 4. `04_admin.sql`

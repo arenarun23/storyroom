@@ -1,6 +1,6 @@
 -- =====================================================================
 -- 스토리룸 교사 그룹 — 등급 기준 변경 시 즉시 승급/강등 반영
--- 01_schema.sql ~ 14_stats_include_admins.sql 다음에 실행한다. 재실행에 안전하다(멱등).
+-- 01_DANGER_full_reset_schema.sql ~ 14_stats_include_admins.sql 다음에 실행한다. 재실행에 안전하다(멱등).
 --
 -- 기존 apply_promotion()은 승급만 즉시 반영하고 강등은 유지 만료일 도달 시
 -- run_retention_check()로만 처리했다(이미 승급한 회원을 규정 변경만으로

@@ -1,6 +1,6 @@
 -- =====================================================================
 -- 스토리룸 교사 그룹 — 영상 초기화 시 url_key NOT NULL 위반 수정
--- 01_schema.sql ~ 11_admin_video_reassign_record.sql 다음에 실행한다. 재실행에 안전하다(멱등).
+-- 01_DANGER_full_reset_schema.sql ~ 11_admin_video_reassign_record.sql 다음에 실행한다. 재실행에 안전하다(멱등).
 --
 -- videos.url_key는 not null unique라서 "다른 계정으로 승인(초기화)" 시
 -- url_key = null로 설정하면 not-null 제약 위반으로 실패한다(회원 탈퇴 시

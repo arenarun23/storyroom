@@ -1,7 +1,7 @@
 -- =====================================================================
 -- 스토리룸 교사 그룹 — 5·6단계: 알림 · 회원탈퇴 · 관리자 기능
 -- 시방서 v2.0 §3.7(FR-701~712) §3.9 §4.6 §4.7 기준
--- 01_schema.sql, 02_promotion_cooldown.sql, 03_video_feed.sql 다음에 실행한다.
+-- 01_DANGER_full_reset_schema.sql, 02_promotion_cooldown.sql, 03_video_feed.sql 다음에 실행한다.
 -- 이 파일도 재실행에 안전하다(멱등).
 --
 -- 5단계(알림/탈퇴)는 이미 있는 notifications 테이블·withdraw_user() 함수를

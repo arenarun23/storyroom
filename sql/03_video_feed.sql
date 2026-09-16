@@ -1,12 +1,12 @@
 -- =====================================================================
 -- 스토리룸 교사 그룹 — 4단계: 영상 피드 · 등급 안내
 -- 시방서 v2.0 §3.3(FR-301~308) §4.4(SCR-06) §4.5(SCR-07) §4.1(SCR-05) 기준
--- 01_schema.sql, 02_promotion_cooldown.sql 다음에 실행한다.
+-- 01_DANGER_full_reset_schema.sql, 02_promotion_cooldown.sql 다음에 실행한다.
 -- 이 파일도 재실행에 안전하다(멱등).
 -- =====================================================================
 
 -- §8.3 RLS 매트릭스는 profiles 조회 권한을 "로그인 사용자"로 규정한다.
--- 01_schema.sql이 이미 이 정책으로 만들어져 있지만, 예전 버전으로 이미
+-- 01_DANGER_full_reset_schema.sql이 이미 이 정책으로 만들어져 있지만, 예전 버전으로 이미
 -- 마이그레이션한 프로젝트를 위해 여기서도 안전하게 다시 맞춰준다.
 drop policy if exists profiles_select on profiles;
 create policy profiles_select on profiles for select to authenticated using (true);

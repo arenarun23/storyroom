@@ -1,6 +1,6 @@
 -- =====================================================================
 -- 스토리룸 교사 그룹 — 등급 승급/강등 판정에 관리자 계정도 포함
--- 01_schema.sql ~ 15_immediate_reevaluation.sql 다음에 실행한다. 재실행에 안전하다(멱등).
+-- 01_DANGER_full_reset_schema.sql ~ 15_immediate_reevaluation.sql 다음에 실행한다. 재실행에 안전하다(멱등).
 --
 -- apply_promotion/apply_reevaluation/run_retention_check/run_expiry_warnings/
 -- admin_reevaluate_all이 모두 role='user'만 대상으로 삼아, 관리자로 승격된

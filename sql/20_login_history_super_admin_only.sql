@@ -1,6 +1,6 @@
 -- =====================================================================
 -- 스토리룸 교사 그룹 — 로그인 기록은 최고관리자만 조회 가능
--- 01_schema.sql ~ 19_login_history.sql 다음에 실행한다. 재실행에 안전하다(멱등).
+-- 01_DANGER_full_reset_schema.sql ~ 19_login_history.sql 다음에 실행한다. 재실행에 안전하다(멱등).
 -- =====================================================================
 
 drop policy if exists login_history_select on login_history;
