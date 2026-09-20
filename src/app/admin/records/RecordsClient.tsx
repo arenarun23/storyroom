@@ -18,6 +18,7 @@ import type { AdminMemberRow, Level, Role } from "@/lib/types";
 
 type SortKey =
   | "display_name"
+  | "region"
   | "current_level"
   | "level_updated_at"
   | "level_expires_at"
@@ -47,6 +48,33 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "role", label: "권한" },
 ];
 
+// 정렬 드롭다운에 보여줄 항목(테이블 열 순서와 같고, 지역은 이름 바로 뒤).
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "display_name", label: "이름순" },
+  { key: "region", label: "지역순" },
+  ...COLUMNS.slice(1).map((c) => ({ key: c.key, label: `${c.label}순` })),
+];
+
+const ROLE_RANK: Record<string, number> = { user: 0, admin: 1, super_admin: 2 };
+
+// 이름 정렬: 한글 → 영문 → 그 외(숫자·기호) 순이고, 이름이 없는 회원은 항상 맨 뒤.
+function nameGroup(name: string): number {
+  const c = name.trim().charAt(0);
+  if (!c) return 3;
+  if (/[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(c)) return 0;
+  if (/[A-Za-z]/.test(c)) return 1;
+  return 2;
+}
+
+function compareNames(a: string | null, b: string | null): number {
+  const an = (a ?? "").trim();
+  const bn = (b ?? "").trim();
+  const ag = nameGroup(an);
+  const bg = nameGroup(bn);
+  if (ag !== bg) return ag - bg;
+  return an.localeCompare(bn, ag === 0 ? "ko" : "en", { sensitivity: "base" });
+}
+
 const WARN_DAYS = 30;
 
 interface RecordsClientProps {
@@ -64,7 +92,7 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [manualOnly, setManualOnly] = useState(false);
   const [flaggedOnly, setFlaggedOnly] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>("level_expires_at");
+  const [sortKey, setSortKey] = useState<SortKey>("display_name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [selected, setSelected] = useState<AdminMemberRow | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -100,29 +128,34 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
   const sorted = useMemo(() => {
     const dir = sortDir === "asc" ? 1 : -1;
     return [...filtered].sort((a, b) => {
-      let av: string | number = "";
-      let bv: string | number = "";
+      let primary = 0;
 
-      if (sortKey === "current_level") {
-        av = levelOrder.get(a.current_level) ?? 0;
-        bv = levelOrder.get(b.current_level) ?? 0;
-      } else if (sortKey === "display_name") {
-        av = a.display_name ?? "";
-        bv = b.display_name ?? "";
+      if (sortKey === "display_name" || sortKey === "region") {
+        const av = ((sortKey === "display_name" ? a.display_name : a.region) ?? "").trim();
+        const bv = ((sortKey === "display_name" ? b.display_name : b.region) ?? "").trim();
+        // 비어 있는 값은 오름/내림과 상관없이 항상 맨 뒤로 보낸다.
+        if (!av !== !bv) return av ? -1 : 1;
+        primary = compareNames(av, bv);
+      } else if (
+        sortKey === "level_updated_at" ||
+        sortKey === "level_expires_at" ||
+        sortKey === "last_active_at"
+      ) {
+        const av = a[sortKey];
+        const bv = b[sortKey];
+        if (!av !== !bv) return av ? -1 : 1;
+        primary = av && bv ? new Date(av).getTime() - new Date(bv).getTime() : 0;
+      } else if (sortKey === "current_level") {
+        primary = (levelOrder.get(a.current_level) ?? 0) - (levelOrder.get(b.current_level) ?? 0);
       } else if (sortKey === "role") {
-        av = a.role;
-        bv = b.role;
-      } else if (sortKey === "level_updated_at" || sortKey === "level_expires_at" || sortKey === "last_active_at") {
-        av = a[sortKey] ? new Date(a[sortKey] as string).getTime() : 0;
-        bv = b[sortKey] ? new Date(b[sortKey] as string).getTime() : 0;
+        primary = (ROLE_RANK[a.role] ?? 0) - (ROLE_RANK[b.role] ?? 0);
       } else {
-        av = a[sortKey] as number;
-        bv = b[sortKey] as number;
+        primary = (a[sortKey] as number) - (b[sortKey] as number);
       }
 
-      if (av < bv) return -1 * dir;
-      if (av > bv) return 1 * dir;
-      return 0;
+      if (primary !== 0) return primary * dir;
+      // 같은 값끼리는 이름순(한글 → 영문)으로 안정적으로 정렬한다.
+      return compareNames(a.display_name, b.display_name);
     });
   }, [filtered, sortKey, sortDir, levelOrder]);
 
@@ -211,6 +244,32 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
       {message && <p className="text-sm text-teal-deep">{message}</p>}
 
       <div className="card flex flex-wrap items-center gap-3 p-4">
+        <div className="flex items-center gap-1.5">
+          <select
+            value={sortKey}
+            onChange={(e) => {
+              setSortKey(e.target.value as SortKey);
+              setSortDir("asc");
+            }}
+            className="input-field px-3 text-xs"
+            aria-label="정렬 기준"
+          >
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.key} value={o.key}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+            className="chip border border-line px-3 text-xs font-semibold text-ink"
+            aria-label="정렬 방향 전환"
+          >
+            {sortDir === "asc" ? "오름차순 ▲" : "내림차순 ▼"}
+          </button>
+        </div>
+
         <select value={levelFilter} onChange={(e) => setLevelFilter(e.target.value)} className="input-field px-3 text-xs">
           <option value="">전체 등급 ({members.length})</option>
           {levels.map((l) => (
@@ -252,7 +311,13 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
                 {COLUMNS[0].label}
                 {sortKey === "display_name" && (sortDir === "asc" ? " ▲" : " ▼")}
               </th>
-              <th className="whitespace-nowrap px-2 py-1.5 font-medium">지역</th>
+              <th
+                onClick={() => toggleSort("region")}
+                className="cursor-pointer whitespace-nowrap px-2 py-1.5 font-medium hover:text-ink"
+              >
+                지역
+                {sortKey === "region" && (sortDir === "asc" ? " ▲" : " ▼")}
+              </th>
               {COLUMNS.slice(1).map((col) => (
                 <th
                   key={col.key}
