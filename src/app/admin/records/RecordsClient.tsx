@@ -270,7 +270,13 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
               <tr
                 key={m.id}
                 onClick={() => setSelected(m)}
-                className="cursor-pointer border-b border-line last:border-b-0 hover:bg-teal-soft/40"
+                className={`cursor-pointer border-b border-line last:border-b-0 ${
+                  m.role === "super_admin"
+                    ? "bg-[#f0e8fa] hover:bg-[#e6daf5]"
+                    : m.role === "admin"
+                      ? "bg-[#fdeedd] hover:bg-[#fbe2c8]"
+                      : "hover:bg-teal-soft/40"
+                }`}
               >
                 <td className="whitespace-nowrap px-2 py-1.5 font-semibold text-ink">
                   {m.display_name ?? "이름 없음"}
