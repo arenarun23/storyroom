@@ -123,28 +123,31 @@ export default function BlogManager({ posts, disabled }: BlogManagerProps) {
                     placeholder="블로그 주소 (https://...)"
                     value={row.url}
                     onChange={(e) => updateRow(row.id, { url: e.target.value })}
-                    className="input-field flex-1 px-4 text-sm"
+                    className="input-field w-full min-w-0 px-4 text-sm sm:flex-1"
                     aria-label={`블로그 주소 ${i + 1}`}
                   />
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="게시물 제목 (선택)"
-                      value={row.title}
-                      onChange={(e) => updateRow(row.id, { title: e.target.value })}
-                      className="input-field flex-1 px-4 text-sm sm:w-56"
-                      aria-label={`게시물 제목 ${i + 1}`}
-                    />
+                  {/* 모바일: 제목·블로그 이름을 세로로 쌓고(입력칸 기본 최소 너비 때문에 가로로 두면 화면을 벗어남), sm 이상에서만 가로 배치 */}
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-none sm:flex-row">
+                      <input
+                        type="text"
+                        placeholder="게시물 제목 (선택)"
+                        value={row.title}
+                        onChange={(e) => updateRow(row.id, { title: e.target.value })}
+                        className="input-field w-full min-w-0 px-4 text-sm sm:w-56"
+                        aria-label={`게시물 제목 ${i + 1}`}
+                      />
 
-                    <input
-                      type="text"
-                      placeholder="블로그 이름"
-                      value={row.ownerNickname}
-                      onChange={(e) => updateRow(row.id, { ownerNickname: e.target.value })}
-                      className="input-field flex-1 px-4 text-sm sm:w-40"
-                      aria-label={`블로그 이름 ${i + 1}`}
-                    />
+                      <input
+                        type="text"
+                        placeholder="블로그 이름"
+                        value={row.ownerNickname}
+                        onChange={(e) => updateRow(row.id, { ownerNickname: e.target.value })}
+                        className="input-field w-full min-w-0 px-4 text-sm sm:w-40"
+                        aria-label={`블로그 이름 ${i + 1}`}
+                      />
+                    </div>
 
                     {rows.length > 1 && (
                       <button

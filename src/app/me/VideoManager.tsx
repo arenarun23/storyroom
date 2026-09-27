@@ -219,7 +219,7 @@ export function VideoRegisterForm({
                   value={row.url}
                   onChange={(e) => updateRow(row.id, { url: e.target.value })}
                   onBlur={(e) => handleUrlBlur(row.id, e.target.value)}
-                  className="input-field flex-1 px-4 text-sm"
+                  className="input-field w-full min-w-0 px-4 text-sm sm:flex-1"
                   aria-label={`영상 링크 ${i + 1}`}
                 />
 

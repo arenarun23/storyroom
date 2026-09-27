@@ -52,7 +52,7 @@ export default function AppShell({ displayName, avatarUrl, email, isAdmin = fals
   return (
     <div className="flex min-h-full flex-1 flex-col pb-16 md:pb-0">
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-paper/95 px-6 py-4 backdrop-blur sm:px-10">
-        <Link href="/" className="font-title text-lg font-bold text-teal-deep">
+        <Link href="/" className="font-title text-sm font-bold leading-tight text-teal-deep sm:text-lg">
           STORYROOM EDU CERTIFICATION
         </Link>
 

@@ -15,7 +15,8 @@ export default function OutlierBadge({ size = "sm" }: { size?: "sm" | "md" }) {
       </span>
       <span
         role="tooltip"
-        className="pointer-events-none absolute top-full left-0 z-20 mt-2 w-56 rounded-[10px] border border-line bg-card px-3 py-2 text-xs leading-relaxed text-ink opacity-0 shadow-[var(--shadow-s2)] transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+        // 숨김 상태에서도 레이아웃에 잡히면 모바일에서 페이지 폭이 넓어지므로 hidden으로 완전히 뺀다.
+        className="pointer-events-none absolute top-full left-0 z-20 mt-2 hidden w-56 max-w-[calc(100vw-2rem)] rounded-[10px] border border-line bg-card px-3 py-2 text-xs leading-relaxed text-ink shadow-[var(--shadow-s2)] group-hover:block group-focus-within:block"
       >
         {EXPLANATION}
       </span>
