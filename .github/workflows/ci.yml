@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+# 이 워크플로는 코드를 읽고 빌드만 한다 — 저장소 쓰기 권한이 필요 없다.
+permissions:
+  contents: read
+
 jobs:
   build-and-lint:
     runs-on: ubuntu-latest
@@ -22,9 +26,11 @@ jobs:
       - run: npm run lint
 
       # 실제 Supabase 프로젝트 없이도 next build는 성공한다(런타임에만 필요한 값들).
-      # 값이 있으면 그대로 쓰고, 없으면(포크 PR 등 secrets 미접근) 플레이스홀더로 대체한다.
+      # 공개 값(URL·anon 키)은 있으면 쓰고 없으면 플레이스홀더로 대체한다.
+      # service role 키는 빌드에 필요 없으므로 실제 값을 넘기지 않는다
+      # (npm 의존성 등 빌드 중 실행되는 코드에 관리자 키가 노출되지 않도록).
       - run: npm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder_anon_key' }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder_service_key' }}
+          SUPABASE_SERVICE_ROLE_KEY: placeholder_service_key
