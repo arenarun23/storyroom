@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/supabase/adminAuth";
+import { SUPER_ADMIN_TARGET_MESSAGE, canManageMembers, requireAdmin } from "@/lib/supabase/adminAuth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ActionResult } from "@/lib/types";
 
@@ -12,6 +12,10 @@ export async function setApproval(
 ): Promise<ActionResult> {
   const admin = await requireAdmin();
   const client = createAdminClient();
+
+  if (!(await canManageMembers(admin, client, memberIds))) {
+    return { ok: false, message: SUPER_ADMIN_TARGET_MESSAGE };
+  }
 
   const { error } = await client
     .from("profiles")

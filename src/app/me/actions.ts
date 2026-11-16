@@ -2,10 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { extractYouTubeId, normalizeUrl } from "@/lib/format";
+import { MAX_URL_LENGTH, extractYouTubeId, normalizeUrl } from "@/lib/format";
 import type { ActionResult, BlogPostInputRow, CreateBlogPostsResult, CreateVideosResult, VideoInputRow } from "@/lib/types";
 
 const URL_PATTERN = /^https?:\/\//i;
+
+// 형식(http/https)과 길이 상한을 함께 확인한다.
+function isValidUrl(url: string): boolean {
+  return url.length <= MAX_URL_LENGTH && URL_PATTERN.test(url);
+}
 const MAX_ROWS = 10;
 
 // §11.2 검증 순서: 로그인 → 승인 상태 → 행별 형식 → 입력 내 중복 →
@@ -41,7 +46,7 @@ export async function createVideos(rows: VideoInputRow[]): Promise<CreateVideosR
 
   const parsed: Parsed[] = rows.map((row) => {
     const url = row.url.trim();
-    if (!URL_PATTERN.test(url)) return null;
+    if (!isValidUrl(url)) return null;
     if (!row.durationSec || row.durationSec <= 0) return null;
     return {
       url,
@@ -53,7 +58,7 @@ export async function createVideos(rows: VideoInputRow[]): Promise<CreateVideosR
 
   rows.forEach((row, i) => {
     if (parsed[i] !== null) return;
-    rowErrors[i] = URL_PATTERN.test(row.url.trim())
+    rowErrors[i] = isValidUrl(row.url.trim())
       ? "재생시간을 자동으로 읽지 못했습니다. 직접 입력해 주세요."
       : "http(s):// 로 시작하는 링크를 넣어주세요";
   });
@@ -159,7 +164,7 @@ export async function updateVideo(
 
   if (input.url !== undefined) {
     const url = input.url.trim();
-    if (!URL_PATTERN.test(url)) {
+    if (!isValidUrl(url)) {
       return { ok: false, message: "http(s):// 로 시작하는 링크를 넣어주세요" };
     }
     patch.url = url;
@@ -287,7 +292,7 @@ export async function createBlogPosts(rows: BlogPostInputRow[]): Promise<CreateB
 
   const parsed: Parsed[] = rows.map((row) => {
     const url = row.url.trim();
-    if (!URL_PATTERN.test(url)) return null;
+    if (!isValidUrl(url)) return null;
     return { url, key: normalizeUrl(url) };
   });
 

@@ -19,6 +19,12 @@ export async function fetchFeedPage(
 ): Promise<{ videos: FeedVideo[]; nextCursor: FeedCursor | null }> {
   const supabase = await createClient();
 
+  // 피드는 로그인 사용자 전용이다(DB에서도 anon의 실행 권한을 회수했다).
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { videos: [], nextCursor: null };
+
   const { data, error } = await supabase.rpc("list_videos_feed", {
     p_sort: sort,
     p_level: level,

@@ -12,14 +12,28 @@ export function isYouTubeUrl(url: string): boolean {
   return extractYouTubeId(url) !== null;
 }
 
+// 링크 입력 길이 상한. 이보다 긴 값은 서버 액션에서 형식 오류로 거절한다.
+export const MAX_URL_LENGTH = 2048;
+
 // DB 트리거 trg_validate_video_fn의 url_key 생성 로직과 동일하게 정규화한다
 // (쿼리스트링/해시 제거 → 후행 슬래시 제거 → 소문자화).
+// 정규식(/[?#].*$/, /\/+$/)은 긴 입력에서 역추적이 제곱 시간으로 늘어나므로
+// (ReDoS) 같은 결과를 내는 선형 시간 코드로 처리한다.
 export function normalizeUrl(url: string): string {
-  return url
-    .trim()
-    .replace(/[?#].*$/, "")
-    .replace(/\/+$/, "")
-    .toLowerCase();
+  let s = url.trim();
+
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c === 63 /* ? */ || c === 35 /* # */) {
+      s = s.slice(0, i);
+      break;
+    }
+  }
+
+  let end = s.length;
+  while (end > 0 && s.charCodeAt(end - 1) === 47 /* / */) end--;
+
+  return s.slice(0, end).toLowerCase();
 }
 
 // "MM:SS" 또는 "HH:MM:SS" → 초. 형식이 잘못되면 null.

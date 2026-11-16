@@ -84,6 +84,15 @@ interface RecordsClientProps {
   initialLevel?: string;
 }
 
+// CSV 수식 주입 방지: 엑셀/스프레드시트는 =, +, -, @, 탭, CR로 시작하는 셀을
+// 수식으로 실행한다. 회원이 정하는 값(표시 이름 등)이 섞이므로 문자열 셀이
+// 이런 문자로 시작하면 앞에 작은따옴표를 붙여 일반 텍스트로 읽히게 한다.
+// (숫자 셀은 음수가 깨지지 않도록 그대로 둔다.)
+function csvCell(cell: unknown): string {
+  if (typeof cell === "number") return String(cell);
+  const text = String(cell);
+  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+}
 export default function RecordsClient({ members, levels, viewerRole, initialLevel = "" }: RecordsClientProps) {
   const [levelFilter, setLevelFilter] = useState(initialLevel);
   const [expiringOnly, setExpiringOnly] = useState(false);
@@ -191,7 +200,7 @@ export default function RecordsClient({ members, levels, viewerRole, initialLeve
     ]);
 
     const csv = [headers, ...rows]
-      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .map((row) => row.map((cell) => `"${csvCell(cell).replace(/"/g, '""')}"`).join(","))
       .join("\n");
 
     const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8;" });

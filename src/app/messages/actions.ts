@@ -53,7 +53,9 @@ export async function getOrCreateThread(
 
   if (existing) {
     if (existing.hidden_for_user) {
-      await supabase.from("message_threads").update({ hidden_for_user: false }).eq("id", existing.id);
+      // 숨긴 스레드는 본인 RLS로 안 보여 직접 UPDATE가 안 되므로 전용 함수를 쓴다
+      // (sql/52_low_severity_hardening.sql).
+      await supabase.rpc("set_thread_hidden", { p_thread: existing.id, p_hidden: false });
     }
     return { ok: true, threadId: existing.id };
   }
@@ -99,8 +101,8 @@ export async function deleteThread(threadId: string): Promise<ActionResult> {
     return { ok: true };
   }
 
-  const { error } = await supabase.from("message_threads").update({ hidden_for_user: true }).eq("id", threadId);
-  if (error) return { ok: false, message: "삭제에 실패했습니다." };
+  const { data: hidden, error } = await supabase.rpc("set_thread_hidden", { p_thread: threadId, p_hidden: true });
+  if (error || !hidden) return { ok: false, message: "삭제에 실패했습니다." };
   return { ok: true };
 }
 
@@ -256,8 +258,8 @@ export async function deleteMessage(messageId: string): Promise<ActionResult> {
     return { ok: true };
   }
 
-  const { error } = await supabase.from("messages").update({ hidden_for_user: true }).eq("id", messageId);
-  if (error) return { ok: false, message: "삭제에 실패했습니다." };
+  const { data: hidden, error } = await supabase.rpc("hide_message", { p_message: messageId });
+  if (error || !hidden) return { ok: false, message: "삭제에 실패했습니다." };
   return { ok: true };
 }
 
