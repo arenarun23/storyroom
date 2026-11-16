@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/supabase/adminAuth";
+import { SUPER_ADMIN_TARGET_MESSAGE, canManageMembers, requireAdmin } from "@/lib/supabase/adminAuth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SUPER_ADMIN_EMAIL } from "@/lib/roles";
@@ -163,6 +163,9 @@ export async function adminSetLevel(memberId: string, toLevel: string, reason: s
   if (!reason.trim()) return { ok: false, message: "사유를 입력해 주세요." };
 
   const client = createAdminClient();
+  if (!(await canManageMembers(admin, client, [memberId]))) {
+    return { ok: false, message: SUPER_ADMIN_TARGET_MESSAGE };
+  }
   const { data: before } = await client
     .from("profiles")
     .select("current_level, manual_override")
@@ -204,6 +207,9 @@ export async function adminSetLevel(memberId: string, toLevel: string, reason: s
 export async function adminForceReevaluate(memberId: string): Promise<ActionResult> {
   const admin = await requireAdmin();
   const client = createAdminClient();
+  if (!(await canManageMembers(admin, client, [memberId]))) {
+    return { ok: false, message: SUPER_ADMIN_TARGET_MESSAGE };
+  }
 
   const { data: before } = await client
     .from("profiles")
@@ -244,6 +250,9 @@ export async function adminForceReevaluate(memberId: string): Promise<ActionResu
 export async function adminReleaseCooldown(memberId: string): Promise<ActionResult> {
   const admin = await requireAdmin();
   const client = createAdminClient();
+  if (!(await canManageMembers(admin, client, [memberId]))) {
+    return { ok: false, message: SUPER_ADMIN_TARGET_MESSAGE };
+  }
 
   const { error } = await client.rpc("release_cooldown_early", { p_user: memberId, p_admin: admin.id });
   if (error) return { ok: false, message: "처리에 실패했습니다." };
@@ -259,6 +268,9 @@ export async function adminReleaseCooldown(memberId: string): Promise<ActionResu
 export async function adminSetExpiry(memberId: string, expiresAt: string | null): Promise<ActionResult> {
   const admin = await requireAdmin();
   const client = createAdminClient();
+  if (!(await canManageMembers(admin, client, [memberId]))) {
+    return { ok: false, message: SUPER_ADMIN_TARGET_MESSAGE };
+  }
 
   const { data: before } = await client
     .from("profiles")
