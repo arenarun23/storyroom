@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/supabase/adminAuth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SUPER_ADMIN_EMAIL } from "@/lib/roles";
-import { extractYouTubeId, normalizeUrl } from "@/lib/format";
+import { MAX_URL_LENGTH, extractYouTubeId, normalizeUrl } from "@/lib/format";
 import type { ActionResult, Comment, Level, LevelRule, Role, Video } from "@/lib/types";
 
 const URL_PATTERN = /^https?:\/\//i;
@@ -579,7 +579,7 @@ export async function adminUpdateVideoInfo(
 
   if (patch.url !== undefined) {
     const url = patch.url.trim();
-    if (!URL_PATTERN.test(url)) {
+    if (url.length > MAX_URL_LENGTH || !URL_PATTERN.test(url)) {
       return { ok: false, message: "http(s):// 로 시작하는 링크를 넣어주세요" };
     }
     update.url = url;
